@@ -2,9 +2,6 @@
     "name": "oatmael/wasm-php",
     "description": "A WASM runtime for PHP",
     "type": "library",
-    "require": {
-        "php": "^7.4|^8.0"
-    },
     "autoload": {
         "psr-4": {
             "Oatmael\\WasmPhp\\": "src/"
@@ -23,5 +20,8 @@
         "allow-plugins": {
             "pestphp/pest-plugin": true
         }
+    },
+    "require": {
+        "php": "^8.2"
     }
 }
