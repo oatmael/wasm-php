@@ -1,0 +1,27 @@
+{
+    "name": "oatmael/wasm-php",
+    "description": "A WASM runtime for PHP",
+    "type": "library",
+    "require": {
+        "php": "^7.4|^8.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Oatmael\\WasmPhp\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Jaron Harrison",
+            "email": "jaronharrison1605@gmail.com"
+        }
+    ],
+    "require-dev": {
+        "pestphp/pest": "^3.7"
+    },
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    }
+}
