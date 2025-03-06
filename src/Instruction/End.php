@@ -2,7 +2,7 @@
 
 namespace Oatmael\WasmPhp\Instruction;
 
-use Exception;
+use Oatmael\WasmPhp\Execution\Store;
 
 #[Opcode(StandardOpcode::end)]
 class End implements InstructionInterface {
@@ -10,8 +10,8 @@ class End implements InstructionInterface {
         return new self();
     }
 
-    public function execute() { 
-        throw new Exception('Unimplemented');
+    public function execute(array &$stack, array &$call_stack, Store $store) { 
+        $store->popFrame($stack, $call_stack);
     }
 
 }

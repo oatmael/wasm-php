@@ -6,8 +6,8 @@ use Exception;
 use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Type\I32;
 
-#[Opcode(StandardOpcode::i32_add)]
-class I32Add implements InstructionInterface {
+#[Opcode(StandardOpcode::i32_sub)]
+class I32Sub implements InstructionInterface {
     public static function fromInput(string $input, int &$offset): InstructionInterface { 
         return new self();
     }
@@ -17,10 +17,10 @@ class I32Add implements InstructionInterface {
         $right = array_pop($stack);
 
         if (!($left instanceof I32) || !($right instanceof I32)) {
-            throw new Exception('Invalid stack params for i32.add opcode');
+            throw new Exception('Invalid stack params for i32.sub opcode');
         }
 
-        array_push($stack, new I32($left->value + $right->value));
+        array_push($stack, new I32($left->value - $right->value));
     }
 
 }

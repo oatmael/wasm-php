@@ -4,6 +4,7 @@ namespace Oatmael\WasmPhp\Util;
 
 use Exception;
 use Oatmael\WasmPhp\Instruction\Opcode;
+use Oatmael\WasmPhp\Module;
 use Oatmael\WasmPhp\Type\Code;
 use Oatmael\WasmPhp\Type\Export;
 use Oatmael\WasmPhp\Type\Func;
@@ -59,9 +60,6 @@ class WasmReader {
     
     public const WASM_BINARY_MAGIC = "\0asm";
 
-    // hex length of a uint32
-    protected const UINT_32_LEN = 8;
-
     protected int $version;
     protected array $types;
     protected array $codes;
@@ -73,7 +71,11 @@ class WasmReader {
 
     protected string $wasm;
 
-    public function __construct(string $wasm)
+    public function __construct()
+    {
+    }
+
+    public function read(string $wasm)
     {
         $this->version = 0;
         $this->types = [];
@@ -85,16 +87,22 @@ class WasmReader {
         $this->imports = [];
 
         $this->wasm = bin2hex($wasm);
-    }
 
-    public function read()
-    {
         $offset = self::readHeader();
         while ($offset < strlen($this->wasm)) {
             $offset = $this->readSection($offset);
         }
 
-        return '';
+        return new Module(
+            $this->version,
+            $this->types,
+            $this->codes,
+            $this->functions,
+            $this->memory,
+            $this->data,
+            $this->exports,
+            $this->imports
+        );
     }
     
     // https://webassembly.github.io/spec/core/binary/modules.html#binary-module
@@ -133,21 +141,18 @@ class WasmReader {
             case Section::TYPE:
                 var_dump('Section type');
                 $types = $this->readTypeSection($offset, $section_size);
-                var_dump($types);
                 $this->types = [...$this->types, ...$types];
                 break;
             // https://webassembly.github.io/spec/core/binary/modules.html#import-section
             case Section::IMPORT:
                 var_dump('Section import');
                 $imports = $this->readImportSection($offset, $section_size);
-                var_dump($imports);
                 $this->imports = [...$this->imports, ...$imports];
                 break;
             // https://webassembly.github.io/spec/core/binary/modules.html#function-section
             case Section::FUNCTION:
                 var_dump('Section function');
                 $funcs = $this->readFunctionSection($offset, $section_size);
-                var_dump($funcs);
                 $this->functions = [...$this->functions, ...$funcs];
                 break;
             // https://webassembly.github.io/spec/core/binary/modules.html#table-section
@@ -166,7 +171,6 @@ class WasmReader {
             case Section::EXPORT:
                 var_dump('Section export');
                 $exports = $this->readExportSection($offset, $section_size);
-                var_dump($exports);
                 $this->exports = [...$this->exports, ...$exports];
                 break;
             // https://webassembly.github.io/spec/core/binary/modules.html#start-section
@@ -181,8 +185,7 @@ class WasmReader {
             case Section::CODE:
                 var_dump('Section code');
                 $codes = $this->readCodeSection($offset, $section_size);
-                var_dump($codes);
-                $this->codes = [...$this->codes, $codes];
+                $this->codes = [...$this->codes, ...$codes];
                 break;
             // https://webassembly.github.io/spec/core/binary/modules.html#data-section
             case Section::DATA:
@@ -208,7 +211,7 @@ class WasmReader {
 
         $read_offset = $offset;
         while ($read_offset < $final) {
-            if (count($types) > $vec_size) {
+            if ($vec_size > 0 && count($types) > $vec_size) {
                 throw new Exception('Malformed type section - vec size overflow');
             }
 
@@ -242,7 +245,7 @@ class WasmReader {
 
         $read_offset = $offset;
         while ($read_offset < $final) {
-            if (count($imports) > $vec_size) {
+            if ($vec_size > 0 && count($imports) > $vec_size) {
                 throw new Exception('Malformed type section - vec size overflow');
             }
 
@@ -274,7 +277,7 @@ class WasmReader {
         $funcs = [];
 
         $read_offset = $offset;
-        while ($read_offset < $final) {
+        while ($vec_size > 0 && $read_offset < $final) {
             if (count($funcs) > $vec_size) {
                 throw new Exception('Malformed function section - vec size overflow');
             }
@@ -293,7 +296,7 @@ class WasmReader {
 
         $read_offset = $offset;
         while ($read_offset < $final) {
-            if (count($exports) > $vec_size) {
+            if ($vec_size > 0 && count($exports) > $vec_size) {
                 throw new Exception('Malformed function section - vec size overflow');
             }
 
@@ -325,7 +328,7 @@ class WasmReader {
 
         $read_offset = $offset;
         while ($read_offset < $final) {
-            if (count($codes) > $vec_size) {
+            if ($vec_size > 0 && count($codes) > $vec_size) {
                 throw new Exception('Malformed function section - vec size overflow');
             }
 

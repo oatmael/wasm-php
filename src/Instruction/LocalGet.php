@@ -2,7 +2,7 @@
 
 namespace Oatmael\WasmPhp\Instruction;
 
-use Exception;
+use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Util\WasmReader;
 
 #[Opcode(StandardOpcode::local_get)]
@@ -14,8 +14,8 @@ class LocalGet implements InstructionInterface {
         return new self($local_idx);
     }
 
-    public function execute() { 
-        throw new Exception('Unimplemented');
+    public function execute(array &$stack, array &$call_stack, Store $store) { 
+        array_push($stack, end($call_stack)->locals[$this->local_idx]);
     }
 
 }
