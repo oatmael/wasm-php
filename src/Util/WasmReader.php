@@ -3,9 +3,12 @@
 namespace Oatmael\WasmPhp\Util;
 
 use Exception;
+use Oatmael\WasmPhp\Instruction\Opcode;
+use Oatmael\WasmPhp\Type\Code;
 use Oatmael\WasmPhp\Type\Export;
 use Oatmael\WasmPhp\Type\Func;
 use Oatmael\WasmPhp\Type\Import;
+use Oatmael\WasmPhp\Type\Local;
 
 enum ValueType: int {
     case I32       = 0x7F;
@@ -174,9 +177,12 @@ class WasmReader {
             case Section::ELEMENT:
                 var_dump('Section element');
                 break;
-            // https://webassembly.github.io/spec/core/binary/modules.html#element-section
+            // https://webassembly.github.io/spec/core/binary/modules.html#code-section
             case Section::CODE:
                 var_dump('Section code');
+                $codes = $this->readCodeSection($offset, $section_size);
+                var_dump($codes);
+                $this->codes = [...$this->codes, $codes];
                 break;
             // https://webassembly.github.io/spec/core/binary/modules.html#data-section
             case Section::DATA:
@@ -309,6 +315,47 @@ class WasmReader {
         }
 
         return $exports;
+    }
+
+    protected function readCodeSection(int $offset, int $section_size) {
+        $final = $offset + $section_size;
+
+        $vec_size = self::readLEB128Uint32($this->wasm, $offset);
+        $codes = [];
+
+        $read_offset = $offset;
+        while ($read_offset < $final) {
+            if (count($codes) > $vec_size) {
+                throw new Exception('Malformed function section - vec size overflow');
+            }
+
+            $body_size = self::readLEB128Uint32($this->wasm, $read_offset);
+            $instructions_final = $read_offset + ($body_size * 2);
+
+            $vec_size = self::readLEB128Uint32($this->wasm, $read_offset);
+            $locals_final = $read_offset + ($vec_size * 2);
+            $locals = [];
+
+            while ($read_offset < $locals_final) {
+                if (count($locals) > $vec_size) {
+                    throw new Exception('Malformed code body - vec size overflow');
+                }
+
+                $type_count = self::readLEB128Uint32($this->wasm, $read_offset);
+                $local_type = ValueType::from(self::readUint8($this->wasm, $read_offset));
+
+                $locals[] = new Local($type_count, $local_type);
+            }
+
+            $instructions = [];
+            while ($read_offset < $instructions_final) {
+                $instructions[] = Opcode::readOpcode($this->wasm, $read_offset);
+            }
+
+            $codes[] = new Code($locals, $instructions);
+        }
+
+        return $codes;
     }
 
     public static function readName(string $input, int &$offset): string
