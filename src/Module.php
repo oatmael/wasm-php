@@ -2,10 +2,16 @@
 
 namespace Oatmael\WasmPhp;
 
+use Exception;
 use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Execution\Frame;
 use Oatmael\WasmPhp\Type\Export;
 use Oatmael\WasmPhp\Instruction\InstructionInterface;
+use Oatmael\WasmPhp\Type\F32;
+use Oatmael\WasmPhp\Type\F64;
+use Oatmael\WasmPhp\Type\I32;
+use Oatmael\WasmPhp\Type\I64;
+use Oatmael\WasmPhp\Util\ValueType;
 
 class Module {
     protected string $magic = "\0asm";
@@ -38,25 +44,56 @@ class Module {
 
     public const MAX_ITERATIONS = 1_000_000;
 
+    public function setImport(string $module, string $field, callable $func): self {
+        $this->store->setImport($module, $field, $func);
+        return $this;
+    }
+
     public function execute(string $root, array $args)
     {
+        $export = array_find($this->store->exports, static fn (Export $export) => $export->name === $root);
+        
+        $function = $this->store->types[$this->store->functions[$export->function_idx - count($this->store->imports)]];
+        $arity = count($function->results);
+
+        $bad_signature = count($function->params) !== count($args);
+        $expected = [];
+        foreach ($function->params as $i => $param) {
+            $expected_param = match ($param) {
+                ValueType::I32 => I32::class,
+                ValueType::I64 => I64::class,
+                ValueType::F32 => F32::class,
+                ValueType::F64 => F64::class,
+                default => null,
+            };
+
+            if (!is_a($args[$i], $expected_param, true)) {
+                $bad_signature = true;
+            }
+            $expected[] = $expected_param;
+        }
+
+        if ($bad_signature) {
+            $provided = array_map(static fn ($arg) => get_class($arg), $args);
+            throw new Exception('Bad export call - expected [' .implode(', ', $expected) . '], got [' . implode(', ', $provided) . ']');
+        }
+        
         $this->stack = [...$args];
         $this->call_stack = [];
 
-        $export = array_find($this->store->exports, static fn (Export $export) => $export->name === $root);
-        
         $this->store->pushFrame($this->stack, $this->call_stack, $export->function_idx);
-        return $this->invoke($export->function_idx);
-    }
-
-    protected function invoke(int $function_idx) {
-        $function = $this->store->types[$this->store->functions[$function_idx]];
-        $arity = count($function->results);
-
         $this->executeFrame();
 
         if ($arity > 0) {
-            $ret = array_pop($this->stack);
+            $ret = [];
+            for ($i = 0; $i < $arity; $i++){
+                $value = array_pop($this->stack);
+                if (!$value) {
+                    throw new Exception('No return value found');
+                }
+                $ret[] = $value;
+            }
+
             return $ret;
         }
 

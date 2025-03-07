@@ -7,8 +7,11 @@ use Oatmael\WasmPhp\Type\F32;
 use Oatmael\WasmPhp\Type\F64;
 use Oatmael\WasmPhp\Type\I32;
 use Oatmael\WasmPhp\Type\I64;
+use Oatmael\WasmPhp\Type\Import;
 
 class Store {
+    protected array $import_callables;
+
     public function __construct(
         public array $types,
         public array $codes,
@@ -19,15 +22,40 @@ class Store {
         public array $imports
     )
     {
+        $this->import_callables = [];
+    }
+
+    public function setImport(string $module, string $field, callable $func): self {
+        $this->import_callables[$module][$field] = $func;
+        return $this;
     }
 
     public function pushFrame(array &$stack, array &$call_stack, int $function_idx) {
-        $function = $this->types[$this->functions[$function_idx]];
+
+        if ($function_idx >= count($this->imports)) {
+            $function = $this->types[$this->functions[$function_idx - count($this->imports)]];
+        } else {
+            $function = $this->types[$function_idx];
+        }
+
         $bottom = count($stack) - count($function->params);
         $locals = array_splice($stack, $bottom);
 
+        if ($import = array_find($this->imports, static fn (Import $import) => $import->function_idx === $function_idx)) {
+            $import_func = $this->import_callables[$import->module][$import->field] ?? null;
+            if (!$import_func) {
+                throw new Exception('Undefined import ' . $import->module . ':' . $import->field);
+            }
+
+            $ret = $import_func($this, ...$locals);
+            if ($ret) {
+                array_push($stack, ...(is_array($ret) ? $ret : [$ret]));
+            }
+            return;
+        }
+
         /** @var Code $code */
-        $code = $this->codes[$function_idx];
+        $code = $this->codes[$function_idx- count($this->imports)];
 
         /** @var Local $local */
         foreach ($code->locals as $local) {

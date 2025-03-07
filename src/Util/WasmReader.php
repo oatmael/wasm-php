@@ -139,19 +139,16 @@ class WasmReader {
                 break;
             // https://webassembly.github.io/spec/core/binary/modules.html#type-section
             case Section::TYPE:
-                var_dump('Section type');
                 $types = $this->readTypeSection($offset, $section_size);
                 $this->types = [...$this->types, ...$types];
                 break;
             // https://webassembly.github.io/spec/core/binary/modules.html#import-section
             case Section::IMPORT:
-                var_dump('Section import');
                 $imports = $this->readImportSection($offset, $section_size);
                 $this->imports = [...$this->imports, ...$imports];
                 break;
             // https://webassembly.github.io/spec/core/binary/modules.html#function-section
             case Section::FUNCTION:
-                var_dump('Section function');
                 $funcs = $this->readFunctionSection($offset, $section_size);
                 $this->functions = [...$this->functions, ...$funcs];
                 break;
@@ -169,7 +166,6 @@ class WasmReader {
                 break;
             // https://webassembly.github.io/spec/core/binary/modules.html#export-section
             case Section::EXPORT:
-                var_dump('Section export');
                 $exports = $this->readExportSection($offset, $section_size);
                 $this->exports = [...$this->exports, ...$exports];
                 break;
@@ -183,7 +179,6 @@ class WasmReader {
                 break;
             // https://webassembly.github.io/spec/core/binary/modules.html#code-section
             case Section::CODE:
-                var_dump('Section code');
                 $codes = $this->readCodeSection($offset, $section_size);
                 $this->codes = [...$this->codes, ...$codes];
                 break;
