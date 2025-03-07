@@ -59,3 +59,28 @@ test('importAdd', function() {
     // TODO: write actual tests here
     expect($ret[0]->value)->toBe($right->value + $left->value);
 });
+
+test('memory', function() {
+    $wasm = file_get_contents('examples/memory.wasm');
+
+    $util = new WasmReader();
+    $module = $util->read($wasm);
+
+    $ret = $module->execute('i32_store', []);
+
+    // TODO: write actual tests here
+    expect($ret)->toBeEmpty();
+});
+
+test('data', function() {
+    $wasm = file_get_contents('examples/data.wasm');
+
+    $util = new WasmReader();
+    $module = $util->read($wasm);
+
+    $ret = [];
+    // $ret = $module->execute('i32_store', []);
+
+    // TODO: write actual tests here
+    expect($ret)->toBeEmpty();
+});

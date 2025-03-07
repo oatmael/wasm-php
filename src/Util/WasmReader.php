@@ -4,12 +4,16 @@ namespace Oatmael\WasmPhp\Util;
 
 use Exception;
 use Oatmael\WasmPhp\Instruction\Opcode;
+use Oatmael\WasmPhp\Instruction\StandardOpcode;
 use Oatmael\WasmPhp\Module;
 use Oatmael\WasmPhp\Type\Code;
+use Oatmael\WasmPhp\Type\Data;
 use Oatmael\WasmPhp\Type\Export;
 use Oatmael\WasmPhp\Type\Func;
 use Oatmael\WasmPhp\Type\Import;
 use Oatmael\WasmPhp\Type\Local;
+use Oatmael\WasmPhp\Type\Memory;
+use PhpParser\PrettyPrinter\Standard;
 
 enum ValueType: int {
     case I32       = 0x7F;
@@ -126,6 +130,7 @@ class WasmReader {
         return $offset;
     }
 
+    // https://webassembly.github.io/spec/core/binary/modules.html
     protected function readSection(int $offset) {
         $type = Section::from(self::readUint8($this->wasm, $offset));
         // Section size is measured as a uint32 of the number of bytes the section takes up
@@ -133,63 +138,58 @@ class WasmReader {
         $section_size = self::readLEB128Uint32($this->wasm, $offset) * 2;
 
         switch ($type) {
-            // https://webassembly.github.io/spec/core/binary/modules.html#binary-customsec
             case Section::CUSTOM:
+                // https://webassembly.github.io/spec/core/binary/modules.html#binary-customsec
                 // This section is skipped. Not really sure how you'd implement it
                 break;
-            // https://webassembly.github.io/spec/core/binary/modules.html#type-section
             case Section::TYPE:
                 $types = $this->readTypeSection($offset, $section_size);
                 $this->types = [...$this->types, ...$types];
                 break;
-            // https://webassembly.github.io/spec/core/binary/modules.html#import-section
             case Section::IMPORT:
                 $imports = $this->readImportSection($offset, $section_size);
                 $this->imports = [...$this->imports, ...$imports];
                 break;
-            // https://webassembly.github.io/spec/core/binary/modules.html#function-section
             case Section::FUNCTION:
                 $funcs = $this->readFunctionSection($offset, $section_size);
                 $this->functions = [...$this->functions, ...$funcs];
                 break;
-            // https://webassembly.github.io/spec/core/binary/modules.html#table-section
             case Section::TABLE:
+                // https://webassembly.github.io/spec/core/binary/modules.html#table-section
                 var_dump('Section table');
                 break;
-            // https://webassembly.github.io/spec/core/binary/modules.html#memory-section
             case Section::MEMORY:
-                var_dump('Section memory');
+                $memory = $this->readMemorySection($offset, $section_size);
+                $this->memory = [...$this->memory, ...$memory];
                 break;
-            // https://webassembly.github.io/spec/core/binary/modules.html#global-section
             case Section::GLOBAL:
+                // https://webassembly.github.io/spec/core/binary/modules.html#global-section
                 var_dump('Section global');
                 break;
-            // https://webassembly.github.io/spec/core/binary/modules.html#export-section
             case Section::EXPORT:
                 $exports = $this->readExportSection($offset, $section_size);
                 $this->exports = [...$this->exports, ...$exports];
                 break;
-            // https://webassembly.github.io/spec/core/binary/modules.html#start-section
             case Section::START:
+                // https://webassembly.github.io/spec/core/binary/modules.html#start-section
                 var_dump('Section start');
                 break;
-            // https://webassembly.github.io/spec/core/binary/modules.html#element-section
             case Section::ELEMENT:
+                // https://webassembly.github.io/spec/core/binary/modules.html#element-section
                 var_dump('Section element');
                 break;
-            // https://webassembly.github.io/spec/core/binary/modules.html#code-section
             case Section::CODE:
                 $codes = $this->readCodeSection($offset, $section_size);
                 $this->codes = [...$this->codes, ...$codes];
                 break;
-            // https://webassembly.github.io/spec/core/binary/modules.html#data-section
             case Section::DATA:
-                var_dump('Section data');
+                // https://webassembly.github.io/spec/core/binary/modules.html#data-section
+                $data = $this->readDataSection($offset, $section_size);
+                $this->data = [...$this->data, ...$data];
                 break;
-            // https://webassembly.github.io/spec/core/binary/modules.html#data-count-section
             case Section::DATA_COUNT:
+                // https://webassembly.github.io/spec/core/binary/modules.html#data-count-section
                 var_dump('Section data count');
-                // throw new Exception('Data count sections are not supported');
                 break;
             default:
                 throw new Exception('Invalid section type: ' . $type);
@@ -198,6 +198,7 @@ class WasmReader {
         return $offset + $section_size;
     }
 
+    // https://webassembly.github.io/spec/core/binary/modules.html#type-section
     protected function readTypeSection(int $offset, int $section_size) {
         $final = $offset + $section_size;
 
@@ -232,6 +233,7 @@ class WasmReader {
         return $types;
     }
 
+    // https://webassembly.github.io/spec/core/binary/modules.html#import-section
     protected function readImportSection(int $offset, int $section_size) {
         $final = $offset + $section_size;
 
@@ -265,6 +267,7 @@ class WasmReader {
         return $imports;
     }
 
+    // https://webassembly.github.io/spec/core/binary/modules.html#function-section
     protected function readFunctionSection(int $offset, int $section_size) {
         $final = $offset + $section_size;
 
@@ -283,6 +286,7 @@ class WasmReader {
         return $funcs;
     }
 
+    // https://webassembly.github.io/spec/core/binary/modules.html#export-section
     protected function readExportSection(int $offset, int $section_size) {
         $final = $offset + $section_size;
 
@@ -315,6 +319,7 @@ class WasmReader {
         return $exports;
     }
 
+    // https://webassembly.github.io/spec/core/binary/modules.html#code-section
     protected function readCodeSection(int $offset, int $section_size) {
         $final = $offset + $section_size;
 
@@ -356,6 +361,67 @@ class WasmReader {
         return $codes;
     }
 
+    // https://webassembly.github.io/spec/core/binary/modules.html#memory-section
+    protected function readMemorySection(int $offset, int $section_size) {
+        $final = $offset + $section_size;
+
+        $vec_size = self::readLEB128Uint32($this->wasm, $offset);
+        $memory = [];
+
+        $read_offset = $offset;
+        while ($read_offset < $final) {
+            if ($vec_size > 0 && count($memory) > $vec_size) {
+                throw new Exception('Malformed function section - vec size overflow');
+            }
+
+            $flags = self::readLEB128Uint32($this->wasm, $read_offset);
+            $min = self::readLEB128Uint32($this->wasm, $read_offset);
+            $max = match ($flags) {
+                0x00    => null,
+                default => self::readLEB128Uint32($this->wasm, $read_offset),
+            };
+
+            $memory[] = new Memory($min, $max);
+        }
+
+        return $memory;
+    }
+
+    // https://webassembly.github.io/spec/core/binary/modules.html#data-section
+    protected function readDataSection(int $offset, int $section_size) {
+        $final = $offset + $section_size;
+
+        $vec_size = self::readLEB128Uint32($this->wasm, $offset);
+        $data = [];
+
+        $read_offset = $offset;
+        while ($read_offset < $final) {
+            if ($vec_size > 0 && count($data) > $vec_size) {
+                throw new Exception('Malformed function section - vec size overflow');
+            }
+
+            $memory_idx = self::readLEB128Uint32($this->wasm, $read_offset);
+            // The opcode describes the type of const used, but it isn't actually needed
+            $opcode = StandardOpcode::from(self::readLEB128Uint32($this->wasm, $read_offset));
+            $memory_offset = self::readLEB128Uint32($this->wasm, $read_offset);
+            $end_opcode = StandardOpcode::from(self::readLEB128Uint32($this->wasm, $read_offset));
+            if ($end_opcode !== StandardOpcode::end) {
+                throw new Exception('Invalid data layout');
+            }
+
+            $data_size = self::readLEB128Uint32($this->wasm, $read_offset);
+            $data[] = new Data(
+                $memory_idx,
+                $memory_offset,
+                init: array_values(unpack("C" . $data_size, hex2bin(substr($this->wasm, $read_offset, $data_size * 2))))
+            );
+
+            $read_offset += $data_size * 2;
+        }
+
+        return $data;
+    }
+
     public static function readName(string $input, int &$offset): string
     {
         $size = self::readLEB128Uint32($input, $offset);
@@ -393,6 +459,34 @@ class WasmReader {
             
             // If the most significant bit is 0, this is the final byte.
             if (($byte & 0x80) === 0) {
+                return $result;
+            }
+            
+            $shift += 7;
+            if ($shift >= 32) {
+                throw new Exception("LEB128 value too large for a u32");
+            }
+        }
+        
+        throw new Exception("Incomplete LEB128 sequence: termination byte not found");
+    }
+
+    public static function readLEB128int32(string $input, int &$offset) {
+        // Unpack the entire string into an array of bytes (unsigned chars)
+        $bytes = unpack('C*', hex2bin(substr($input, $offset)));
+        
+        $result = 0;
+        $shift = 0;
+        
+        foreach ($bytes as $byte) {
+            $result |= (($byte & 0x7F) << $shift);
+            $offset += 2;
+            
+            // If the most significant bit is 0, this is the final byte.
+            if (($byte & 0x80) === 0) {
+                if ($shift < 32 && ($byte & 0x40)) {
+                    $result |= (~0 << ($shift + 7));
+                }
                 return $result;
             }
             
