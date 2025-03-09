@@ -81,11 +81,11 @@ class WasmReader {
     protected array $memory;
     protected array $globals;
     protected array $exports;
-    // start
+    protected ?int $start;
     protected array $elements;
     protected array $codes;
     protected array $data;
-    // data-count
+    protected ?int $data_count;
 
     protected string $wasm;
 
@@ -96,6 +96,7 @@ class WasmReader {
     public function read(string $wasm)
     {
         $this->version = 0;
+        $this->start = null;
         $this->types = [];
         $this->imports = [];
         $this->functions = [];
@@ -126,6 +127,7 @@ class WasmReader {
             globals:    $this->globals,
             tables:     $this->tables,
             elements:   $this->elements,
+            start:      $this->start,
         );
     }
     
@@ -192,7 +194,8 @@ class WasmReader {
                 break;
             case Section::START:
                 // https://webassembly.github.io/spec/core/binary/modules.html#start-section
-                var_dump('Section start');
+                $read_offset = $offset;
+                $this->start = self::readLEB128Uint32($this->wasm, $read_offset);
                 break;
             case Section::ELEMENT:
                 // https://webassembly.github.io/spec/core/binary/modules.html#element-section
@@ -208,7 +211,8 @@ class WasmReader {
                 break;
             case Section::DATA_COUNT:
                 // https://webassembly.github.io/spec/core/binary/modules.html#data-count-section
-                var_dump('Section data count');
+                $read_offset = $offset;
+                $this->data_count = self::readLEB128Uint32($this->wasm, $read_offset);
                 break;
             default:
                 throw new Exception('Invalid section type: ' . $type);

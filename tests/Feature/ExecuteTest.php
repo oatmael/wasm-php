@@ -96,3 +96,18 @@ test('globals', function() {
     // TODO: write actual tests here
     expect($ret[0]->value)->toBe(31);
 });
+
+test('start', function() {
+    $wasm = file_get_contents('examples/start.wasm');
+
+    $util = new WasmReader();
+    $module = $util->read($wasm);
+    $module->setImport('env', 'init', function() {
+        var_dump('This is the start function');
+    });
+
+    $ret = $module->execute('addTwo', [new I32(4), new I32(26)]);
+
+    // TODO: write actual tests here
+    expect($ret[0]->value)->toBe(30);
+});

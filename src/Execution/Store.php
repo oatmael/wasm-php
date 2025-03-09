@@ -13,6 +13,7 @@ use Oatmael\WasmPhp\Type\Memory;
 
 class Store {
     protected array $import_callables;
+    protected bool $initialised;
 
     public function __construct(
         public array $types,
@@ -28,9 +29,17 @@ class Store {
     )
     {
         $this->import_callables = [];
+        $this->initialised = false;
+    }
 
+    public function isInitialised(): bool
+    {
+        return $this->initialised;
+    }
+
+    public function initialise() {
         /** @var Data $data_section */
-        foreach ($data as $data_section) {
+        foreach ($this->data as $data_section) {
             
             /** @var Memory|null $data_memory */
             $data_memory = $memory[$data_section->memory_idx] ?? null;
@@ -44,6 +53,8 @@ class Store {
 
             array_splice($data_memory->data, $data_section->offset, count($data_section->init), $data_section->init);
         }
+
+        $this->initialised = true;
     }
 
     public function setImport(string $module, string $field, callable $func): self {
@@ -52,17 +63,18 @@ class Store {
     }
 
     public function pushFrame(array &$stack, array &$call_stack, int $function_idx) {
-
         if ($function_idx >= count($this->imports)) {
+            $import = null;
             $function = $this->types[$this->functions[$function_idx - count($this->imports)]];
         } else {
-            $function = $this->types[$function_idx];
+            $import = $this->imports[$function_idx];
+            $function = $this->types[$import->function_idx];
         }
 
         $bottom = count($stack) - count($function->params);
         $locals = array_splice($stack, $bottom);
 
-        if ($import = array_find($this->imports, static fn (Import $import) => $import->function_idx === $function_idx)) {
+        if ($import) {
             $import_func = $this->import_callables[$import->module][$import->field] ?? null;
             if (!$import_func) {
                 throw new Exception('Undefined import ' . $import->module . ':' . $import->field);

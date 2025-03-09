@@ -22,6 +22,7 @@ class Module {
 
     public function __construct(
         protected int $version,
+        protected ?int $start,
         array $types,
         array $codes,
         array $functions,
@@ -57,6 +58,18 @@ class Module {
 
     public function execute(string $root, array $args)
     {
+        $this->stack = [];
+        $this->call_stack = [];
+
+        if (!$this->store->isInitialised()) {
+            $this->store->initialise();
+
+            if (isset($this->start)) {
+                $this->store->pushFrame($this->stack, $this->call_stack, $this->start);
+                $this->executeFrame();
+            }
+        }
+
         $export = array_find($this->store->exports, static fn (Export $export) => $export->name === $root);
         
         $function = $this->store->types[$this->store->functions[$export->function_idx - count($this->store->imports)]];
@@ -84,8 +97,7 @@ class Module {
             throw new Exception('Bad export call - expected [' .implode(', ', $expected) . '], got [' . implode(', ', $provided) . ']');
         }
         
-        $this->stack = [...$args];
-        $this->call_stack = [];
+        array_push($this->stack, ...$args);
 
         $this->store->pushFrame($this->stack, $this->call_stack, $export->function_idx);
         $this->executeFrame();
