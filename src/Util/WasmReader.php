@@ -9,11 +9,16 @@ use Oatmael\WasmPhp\Module;
 use Oatmael\WasmPhp\Type\Code;
 use Oatmael\WasmPhp\Type\Data;
 use Oatmael\WasmPhp\Type\Export;
+use Oatmael\WasmPhp\Type\F32;
+use Oatmael\WasmPhp\Type\F64;
 use Oatmael\WasmPhp\Type\Func;
+use Oatmael\WasmPhp\Type\GlobalImmutable;
+use Oatmael\WasmPhp\Type\GlobalMutable;
+use Oatmael\WasmPhp\Type\I32;
+use Oatmael\WasmPhp\Type\I64;
 use Oatmael\WasmPhp\Type\Import;
 use Oatmael\WasmPhp\Type\Local;
 use Oatmael\WasmPhp\Type\Memory;
-use PhpParser\PrettyPrinter\Standard;
 
 enum ValueType: int {
     case I32       = 0x7F;
@@ -59,6 +64,10 @@ enum ExportType: int {
     case GLOBAL   = 0x03;
 }
 
+enum GlobalMutability: int {
+    case Immutable = 0x00;
+    case Mutable   = 0x01;
+}
 
 class WasmReader {
     
@@ -66,12 +75,17 @@ class WasmReader {
 
     protected int $version;
     protected array $types;
-    protected array $codes;
-    protected array $functions;
-    protected array $memory;
-    protected array $data;
-    protected array $exports;
     protected array $imports;
+    protected array $functions;
+    protected array $tables;
+    protected array $memory;
+    protected array $globals;
+    protected array $exports;
+    // start
+    protected array $elements;
+    protected array $codes;
+    protected array $data;
+    // data-count
 
     protected string $wasm;
 
@@ -83,12 +97,15 @@ class WasmReader {
     {
         $this->version = 0;
         $this->types = [];
-        $this->codes = [];
-        $this->functions = [];
-        $this->memory = [];
-        $this->data = [];
-        $this->exports = [];
         $this->imports = [];
+        $this->functions = [];
+        $this->tables = [];
+        $this->memory = [];
+        $this->globals = [];
+        $this->exports = [];
+        $this->elements = [];
+        $this->codes = [];
+        $this->data = [];
 
         $this->wasm = bin2hex($wasm);
 
@@ -98,14 +115,17 @@ class WasmReader {
         }
 
         return new Module(
-            $this->version,
-            $this->types,
-            $this->codes,
-            $this->functions,
-            $this->memory,
-            $this->data,
-            $this->exports,
-            $this->imports
+            version:    $this->version,
+            types:      $this->types,
+            codes:      $this->codes,
+            functions:  $this->functions,
+            memory:     $this->memory,
+            data:       $this->data,
+            exports:    $this->exports,
+            imports:    $this->imports,
+            globals:    $this->globals,
+            tables:     $this->tables,
+            elements:   $this->elements,
         );
     }
     
@@ -163,8 +183,8 @@ class WasmReader {
                 $this->memory = [...$this->memory, ...$memory];
                 break;
             case Section::GLOBAL:
-                // https://webassembly.github.io/spec/core/binary/modules.html#global-section
-                var_dump('Section global');
+                $globals = $this->readGlobalSection($offset, $section_size);
+                $this->globals = [...$this->globals, ...$globals];
                 break;
             case Section::EXPORT:
                 $exports = $this->readExportSection($offset, $section_size);
@@ -183,7 +203,6 @@ class WasmReader {
                 $this->codes = [...$this->codes, ...$codes];
                 break;
             case Section::DATA:
-                // https://webassembly.github.io/spec/core/binary/modules.html#data-section
                 $data = $this->readDataSection($offset, $section_size);
                 $this->data = [...$this->data, ...$data];
                 break;
@@ -335,8 +354,8 @@ class WasmReader {
             $body_size = self::readLEB128Uint32($this->wasm, $read_offset);
             $instructions_final = $read_offset + ($body_size * 2);
 
-            $vec_size = self::readLEB128Uint32($this->wasm, $read_offset);
-            $locals_final = $read_offset + ($vec_size * 2);
+            $locals_size = self::readLEB128Uint32($this->wasm, $read_offset);
+            $locals_final = $read_offset + ($locals_size * 2);
             $locals = [];
 
             while ($read_offset < $locals_final) {
@@ -420,6 +439,45 @@ class WasmReader {
         }
 
         return $data;
+    }
+
+    // https://webassembly.github.io/spec/core/binary/modules.html#global-section
+    protected function readGlobalSection(int $offset, int $section_size) {
+        $final = $offset + $section_size;
+
+        $vec_size = self::readLEB128Uint32($this->wasm, $offset);
+        $globals = [];
+
+        $read_offset = $offset;
+        while ($read_offset < $final) {
+            if ($vec_size > 0 && count($globals) > $vec_size) {
+                throw new Exception('Malformed function section - vec size overflow');
+            }
+
+            $value_type = ValueType::from(self::readLEB128Uint32($this->wasm, $read_offset));
+            $mutability = GlobalMutability::from(self::readLEB128Uint32($this->wasm, $read_offset));
+
+            // The opcode describes the type of const used, but it isn't actually needed
+            $opcode = StandardOpcode::from(self::readLEB128Uint32($this->wasm, $read_offset));
+            $value = match ($value_type) {
+                ValueType::I32 => new I32(self::readLEB128Uint32($this->wasm, $read_offset)),
+                ValueType::I64 => new I64(self::readLEB128Uint32($this->wasm, $read_offset)),
+                ValueType::F32 => new F32(self::readLEB128Uint32($this->wasm, $read_offset)),
+                ValueType::F64 => new F64(self::readLEB128Uint32($this->wasm, $read_offset)),
+            };
+            $end_opcode = StandardOpcode::from(self::readLEB128Uint32($this->wasm, $read_offset));
+            if ($end_opcode !== StandardOpcode::end) {
+                throw new Exception('Invalid data layout');
+            }
+
+            $global = $mutability === GlobalMutability::Immutable ? 
+                new GlobalImmutable($value_type, $value) : 
+                new GlobalMutable($value_type, $value);
+
+            $globals[] = $global;
+        }
+
+        return $globals;
     }
 
     public static function readName(string $input, int &$offset): string

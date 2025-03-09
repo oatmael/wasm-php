@@ -84,3 +84,15 @@ test('data', function() {
     // TODO: write actual tests here
     expect($ret)->toBeEmpty();
 });
+
+test('globals', function() {
+    $wasm = file_get_contents('examples/globals.wasm');
+
+    $util = new WasmReader();
+    $module = $util->read($wasm);
+
+    $ret = $module->execute('addTwo', [new I32(5)]);
+
+    // TODO: write actual tests here
+    expect($ret[0]->value)->toBe(31);
+});

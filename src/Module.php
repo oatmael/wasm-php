@@ -28,17 +28,23 @@ class Module {
         array $memory,
         array $data,
         array $exports,
-        array $imports
+        array $imports,
+        array $globals,
+        array $tables,
+        array $elements,
     )
     {
         $this->store = new Store(
-            $types,
-            $codes,
-            $functions,
-            $memory,
-            $data,
-            $exports,
-            $imports
+            types:      $types,
+            codes:      $codes,
+            functions:  $functions,
+            memory:     $memory,
+            data:       $data,
+            exports:    $exports,
+            imports:    $imports,
+            globals:    $globals,
+            tables:     $tables,
+            elements:   $elements,
         );
     }
 

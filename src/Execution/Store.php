@@ -8,6 +8,8 @@ use Oatmael\WasmPhp\Type\F64;
 use Oatmael\WasmPhp\Type\I32;
 use Oatmael\WasmPhp\Type\I64;
 use Oatmael\WasmPhp\Type\Import;
+use Oatmael\WasmPhp\Type\Data;
+use Oatmael\WasmPhp\Type\Memory;
 
 class Store {
     protected array $import_callables;
@@ -19,10 +21,29 @@ class Store {
         public array $memory,
         public array $data,
         public array $exports,
-        public array $imports
+        public array $imports,
+        public array $globals,
+        public array $tables,
+        public array $elements,
     )
     {
         $this->import_callables = [];
+
+        /** @var Data $data_section */
+        foreach ($data as $data_section) {
+            
+            /** @var Memory|null $data_memory */
+            $data_memory = $memory[$data_section->memory_idx] ?? null;
+            if (!$data_memory) {
+                throw new Exception("Can't load data into memory, no memory found for index " . $data_section->memory_idx);
+            }
+
+            if ($data_section->offset + count($data_section->init) > count($data_memory->data)) {
+                throw new Exception("Data section is too large to fit into memory");
+            }
+
+            array_splice($data_memory->data, $data_section->offset, count($data_section->init), $data_section->init);
+        }
     }
 
     public function setImport(string $module, string $field, callable $func): self {
