@@ -8,6 +8,7 @@ use Oatmael\WasmPhp\Instruction\StandardOpcode;
 use Oatmael\WasmPhp\Module;
 use Oatmael\WasmPhp\Type\Code;
 use Oatmael\WasmPhp\Type\Data;
+use Oatmael\WasmPhp\Type\Element;
 use Oatmael\WasmPhp\Type\Export;
 use Oatmael\WasmPhp\Type\F32;
 use Oatmael\WasmPhp\Type\F64;
@@ -19,6 +20,7 @@ use Oatmael\WasmPhp\Type\I64;
 use Oatmael\WasmPhp\Type\Import;
 use Oatmael\WasmPhp\Type\Local;
 use Oatmael\WasmPhp\Type\Memory;
+use Oatmael\WasmPhp\Type\Table;
 
 enum ValueType: int {
     case I32       = 0x7F;
@@ -177,8 +179,8 @@ class WasmReader {
                 $this->functions = [...$this->functions, ...$funcs];
                 break;
             case Section::TABLE:
-                // https://webassembly.github.io/spec/core/binary/modules.html#table-section
-                var_dump('Section table');
+                $tables = $this->readTableSection($offset, $section_size);
+                $this->tables = [...$this->tables, ...$tables];
                 break;
             case Section::MEMORY:
                 $memory = $this->readMemorySection($offset, $section_size);
@@ -198,8 +200,8 @@ class WasmReader {
                 $this->start = self::readLEB128Uint32($this->wasm, $read_offset);
                 break;
             case Section::ELEMENT:
-                // https://webassembly.github.io/spec/core/binary/modules.html#element-section
-                var_dump('Section element');
+                $elements = $this->readElementSection($offset, $section_size);
+                $this->elements = [...$this->elements, ...$elements];
                 break;
             case Section::CODE:
                 $codes = $this->readCodeSection($offset, $section_size);
@@ -443,6 +445,71 @@ class WasmReader {
         }
 
         return $data;
+    }
+
+    // https://webassembly.github.io/spec/core/binary/modules.html#table-section
+    protected function readTableSection(int $offset, int $section_size) {
+        $final = $offset + $section_size;
+
+        $vec_size = self::readLEB128Uint32($this->wasm, $offset);
+        $tables = [];
+
+        $read_offset = $offset;
+        while ($read_offset < $final) {
+            if ($vec_size > 0 && count($tables) > $vec_size) {
+                throw new Exception('Malformed function section - vec size overflow');
+            }
+
+            $element_type = ValueType::from(self::readLEB128Uint32($this->wasm, $read_offset));
+            $flags = self::readLEB128Uint32($this->wasm, $read_offset);
+            $min = self::readLEB128Uint32($this->wasm, $read_offset);
+            $max = match ($flags) {
+                0x00    => null,
+                default => self::readLEB128Uint32($this->wasm, $read_offset),
+            };
+
+            $tables[] = new Table($element_type, $min, $max);
+        }
+
+        return $tables;
+    }
+
+    // https://webassembly.github.io/spec/core/binary/modules.html#element-section
+    protected function readElementSection(int $offset, int $section_size) {
+        $final = $offset + $section_size;
+
+        $vec_size = self::readLEB128Uint32($this->wasm, $offset);
+        $elements = [];
+
+        $read_offset = $offset;
+        while ($read_offset < $final) {
+            if ($vec_size > 0 && count($elements) > $vec_size) {
+                throw new Exception('Malformed function section - vec size overflow');
+            }
+
+            $table_idx = self::readLEB128Uint32($this->wasm, $read_offset);
+            // The opcode describes the type of const used, but it isn't actually needed
+            $opcode = StandardOpcode::from(self::readLEB128Uint32($this->wasm, $read_offset));
+            $table_offset = self::readLEB128Uint32($this->wasm, $read_offset);
+            $end_opcode = StandardOpcode::from(self::readLEB128Uint32($this->wasm, $read_offset));
+            if ($end_opcode !== StandardOpcode::end) {
+                throw new Exception('Invalid element layout');
+            }
+
+            $func_vec_size = self::readLEB128Uint32($this->wasm, $read_offset);
+            $function_indices = [];
+            for ($i = 0; $i < $func_vec_size; $i++) {
+                $function_indices[] = self::readLEB128Uint32($this->wasm, $read_offset);
+            }
+
+            $elements[] = new Element(
+                $table_idx,
+                $table_offset,
+                $function_indices
+            );
+        }
+
+        return $elements;
     }
 
     // https://webassembly.github.io/spec/core/binary/modules.html#global-section
