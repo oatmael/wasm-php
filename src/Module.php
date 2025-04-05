@@ -11,6 +11,7 @@ use Oatmael\WasmPhp\Type\F32;
 use Oatmael\WasmPhp\Type\F64;
 use Oatmael\WasmPhp\Type\I32;
 use Oatmael\WasmPhp\Type\I64;
+use Oatmael\WasmPhp\Util\ExportType;
 use Oatmael\WasmPhp\Util\ValueType;
 
 class Module {
@@ -70,9 +71,9 @@ class Module {
             }
         }
 
-        $export = array_find($this->store->exports, static fn (Export $export) => $export->name === $root);
+        $export = array_find($this->store->exports, static fn (Export $export) => $export->type === ExportType::FUNCTION && $export->name === $root);
         
-        $function = $this->store->types[$this->store->functions[$export->function_idx - count($this->store->imports)]];
+        $function = $this->store->types[$this->store->functions[$export->idx - count($this->store->imports)]];
         $arity = count($function->results);
 
         $bad_signature = count($function->params) !== count($args);
@@ -99,7 +100,7 @@ class Module {
         
         array_push($this->stack, ...$args);
 
-        $this->store->pushFrame($this->stack, $this->call_stack, $export->function_idx);
+        $this->store->pushFrame($this->stack, $this->call_stack, $export->idx);
         $this->executeFrame();
 
         if ($arity > 0) {

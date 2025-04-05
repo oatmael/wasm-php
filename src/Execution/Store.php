@@ -68,7 +68,7 @@ class Store {
             $function = $this->types[$this->functions[$function_idx - count($this->imports)]];
         } else {
             $import = $this->imports[$function_idx];
-            $function = $this->types[$import->function_idx];
+            $function = $this->types[$import->idx];
         }
 
         $bottom = count($stack) - count($function->params);
@@ -88,7 +88,7 @@ class Store {
         }
 
         /** @var Code $code */
-        $code = $this->codes[$function_idx- count($this->imports)];
+        $code = $this->codes[$function_idx - count($this->imports)];
 
         /** @var Local $local */
         foreach ($code->locals as $local) {

@@ -274,19 +274,8 @@ class WasmReader {
             $module = self::readName($this->wasm, $read_offset);
             $field = self::readName($this->wasm, $read_offset);
             $import_type = ImportType::from(self::readUint8($this->wasm, $read_offset));
-
-            switch ($import_type) {
-                case ImportType::FUNCTION:
-                    $function_idx = self::readLEB128Uint32($this->wasm, $read_offset);
-                    $imports[] = new Import($module, $field, $function_idx);
-                    break;
-                // TODO:
-                case ImportType::TABLE:
-                case ImportType::MEMORY:
-                case ImportType::GLOBAL:
-                default:
-                    throw new Exception('Unsupported import type');
-            }
+            $idx = self::readLEB128Uint32($this->wasm, $read_offset);
+            $imports[] = new Import($module, $field, $import_type, $idx);
         }
 
         return $imports;
@@ -326,19 +315,8 @@ class WasmReader {
 
             $name = self::readName($this->wasm, $read_offset);
             $export_type = ExportType::from(self::readUint8($this->wasm, $read_offset));
-
-            switch ($export_type) {
-                case ExportType::FUNCTION:
-                    $function_idx = self::readLEB128Uint32($this->wasm, $read_offset);
-                    $exports[] = new Export($name, $function_idx);
-                    break;
-                // TODO:
-                case ExportType::TABLE:
-                case ExportType::MEMORY:
-                case ExportType::GLOBAL:
-                default:
-                    throw new Exception('Unsupported export type ' . $export_type);
-            }
+            $idx = self::readLEB128Uint32($this->wasm, $read_offset);
+            $exports[] = new Export($name, $export_type, $idx);
         }
 
         return $exports;
