@@ -72,7 +72,7 @@ enum GlobalMutability: int {
 }
 
 class WasmReader {
-    
+
     public const WASM_BINARY_MAGIC = "\0asm";
 
     protected int $version;
@@ -132,7 +132,7 @@ class WasmReader {
             start:      $this->start,
         );
     }
-    
+
     // https://webassembly.github.io/spec/core/binary/modules.html#binary-module
     protected function readHeader() {
         // Magic binary header to represent the file type
@@ -519,8 +519,8 @@ class WasmReader {
                 throw new Exception('Invalid data layout');
             }
 
-            $global = $mutability === GlobalMutability::Immutable ? 
-                new GlobalImmutable($value_type, $value) : 
+            $global = $mutability === GlobalMutability::Immutable ?
+                new GlobalImmutable($value_type, $value) :
                 new GlobalMutable($value_type, $value);
 
             $globals[] = $global;
@@ -540,13 +540,13 @@ class WasmReader {
 
         return hex2bin($name_hex);
     }
-    
+
     public static function readUint8(string $input, int &$offset) {
         $result = unpack('C', hex2bin(substr($input, $offset, 2)));
         $offset += 2;
         return $result[1];
     }
-    
+
     public static function readUint32(string $input, int &$offset) {
         $result = unpack('V', hex2bin(substr($input, $offset, 8)));
         $offset += 8;
@@ -556,39 +556,39 @@ class WasmReader {
     public static function readLEB128Uint32(string $input, int &$offset) {
         // Unpack the entire string into an array of bytes (unsigned chars)
         $bytes = unpack('C*', hex2bin(substr($input, $offset)));
-        
+
         $result = 0;
         $shift = 0;
-        
+
         foreach ($bytes as $byte) {
             $result |= (($byte & 0x7F) << $shift);
             $offset += 2;
-            
+
             // If the most significant bit is 0, this is the final byte.
             if (($byte & 0x80) === 0) {
                 return $result;
             }
-            
+
             $shift += 7;
             if ($shift >= 32) {
                 throw new Exception("LEB128 value too large for a u32");
             }
         }
-        
+
         throw new Exception("Incomplete LEB128 sequence: termination byte not found");
     }
 
     public static function readLEB128int32(string $input, int &$offset) {
         // Unpack the entire string into an array of bytes (unsigned chars)
         $bytes = unpack('C*', hex2bin(substr($input, $offset)));
-        
+
         $result = 0;
         $shift = 0;
-        
+
         foreach ($bytes as $byte) {
             $result |= (($byte & 0x7F) << $shift);
             $offset += 2;
-            
+
             // If the most significant bit is 0, this is the final byte.
             if (($byte & 0x80) === 0) {
                 if ($shift < 32 && ($byte & 0x40)) {
@@ -596,13 +596,34 @@ class WasmReader {
                 }
                 return $result;
             }
-            
+
             $shift += 7;
             if ($shift >= 32) {
                 throw new Exception("LEB128 value too large for a u32");
             }
         }
-        
+
         throw new Exception("Incomplete LEB128 sequence: termination byte not found");
+    }
+
+    public static function readFloat32(string $input, int &$offset)
+    {
+        $result = unpack('G', hex2bin(substr($input, $offset, 8)));
+        $offset += 8;
+        return $result[1];
+    }
+
+    public static function readFloat64(string $input, int &$offset)
+    {
+        $value = unpack('d', hex2bin(substr($input, $offset, 16)));
+        $offset += 16;
+        return $value[1];
+    }
+
+    public static function readBytes(string $input, int &$offset, int $count)
+    {
+        $bytes = hex2bin(substr($input, $offset, $count * 2));
+        $offset += $count * 2;
+        return $bytes;
     }
 }

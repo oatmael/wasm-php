@@ -17,15 +17,15 @@ class Opcode {
 
     public static function findClass(string $namespace, OpcodeEnum $opcode) {
         $baseDir = __DIR__;
-        
+
         // Ensure directory path ends with separator
         $baseDir = rtrim($baseDir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
-        
+
         // Find all PHP files in the directory
         $directory = new RecursiveDirectoryIterator($baseDir);
         $iterator = new RecursiveIteratorIterator($directory);
         $phpFiles = new RegexIterator($iterator, '/^.+\.php$/i');
-        
+
         foreach ($phpFiles as $phpFile) {
             if (realpath($phpFile->getRealPath()) === realpath(__FILE__)) {
                 continue;
@@ -35,21 +35,21 @@ class Opcode {
             $relativePath = str_replace($baseDir, '', $phpFile->getRealPath());
             $relativePath = str_replace('.php', '', $relativePath);
             $relativePath = str_replace(DIRECTORY_SEPARATOR, '\\', $relativePath);
-            
+
             $className = $namespace . '\\' . $relativePath;
-            
+
             // Check if class exists and can be loaded
             if (!class_exists($className)) {
                 continue;
             }
-            
+
             // Get reflection of the class
             $reflectionClass = new ReflectionClass($className);
             $opcodes = $reflectionClass->getAttributes(self::class, ReflectionAttribute::IS_INSTANCEOF);
 
             if (
-                $reflectionClass->isAbstract() || 
-                $reflectionClass->isInterface() || 
+                $reflectionClass->isAbstract() ||
+                $reflectionClass->isInterface() ||
                 !$reflectionClass->implementsInterface(InstructionInterface::class) ||
                 empty($opcodes)
             ) {
@@ -162,7 +162,7 @@ enum StandardOpcode: int implements OpcodeEnum {
     case i64_gt_s               = 0x55;
     case i64_gt_u               = 0x56;
     case i64_le_s               = 0x57;
-    case i64_ls_u               = 0x58;
+    case i64_le_u               = 0x58;
     case i64_ge_s               = 0x59;
     case i64_ge_u               = 0x5a;
     case f32_eq                 = 0x5b;
@@ -277,7 +277,7 @@ enum StandardOpcode: int implements OpcodeEnum {
     case ref_func               = 0xd2;
     // 0xd3 -> 0xfb reserved
 
-    public static function readOpcode(string $input, int &$offset): InstructionInterface 
+    public static function readOpcode(string $input, int &$offset): InstructionInterface
     {
         $opcode = WasmReader::readUint8($input, $offset);
         $opcode = self::from($opcode);
@@ -315,7 +315,7 @@ enum ExtensionOpcode: int implements OpcodeEnum {
     case table_size          = 0x10;
     case table_fill          = 0x11;
 
-    public static function readOpcode(string $input, int &$offset): InstructionInterface 
+    public static function readOpcode(string $input, int &$offset): InstructionInterface
     {
         $opcode = WasmReader::readLEB128Uint32($input, $offset);
         $opcode = self::from($opcode);
@@ -589,7 +589,7 @@ enum SimdOpcode: int implements OpcodeEnum {
     case f64x2_convert_low_i32x4_s      = 0xfe;
     case f64x2_convert_low_i32x4_u      = 0xff;
 
-    public static function readOpcode(string $input, int &$offset): InstructionInterface 
+    public static function readOpcode(string $input, int &$offset): InstructionInterface
     {
         $opcode = WasmReader::readLEB128Uint32($input, $offset);
         $opcode = self::from($opcode);
