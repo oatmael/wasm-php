@@ -39,7 +39,16 @@ expect()->extend('toBeOne', function () {
 |
 */
 
-function something()
+function compileWat($wat)
 {
-    // ..
+    $tempFile = tempnam(sys_get_temp_dir(), 'wat');
+    $outputFile = tempnam(sys_get_temp_dir(), 'wasm');
+    file_put_contents($tempFile, $wat);
+    exec(__DIR__ . "/../tools/wat2wasm --dump-module $tempFile -o $outputFile", $output);
+    unlink($tempFile);
+
+    $wasm = file_get_contents($outputFile);
+    unlink($outputFile);
+
+    return $wasm;
 }

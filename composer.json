@@ -23,5 +23,16 @@
     },
     "require": {
         "php": "^8.4"
-    }
+    },
+    "scripts": {
+        "post-install-cmd": [
+            "@setup-wabt"
+        ],
+        "setup-wabt": "php scripts/setup-wabt.php"
+    },
+    "bin": [
+        "tools/wat2wasm",
+        "tools/wasm2wat",
+        "tools/wasm-objdump"
+    ]
 }
