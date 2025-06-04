@@ -24,6 +24,8 @@
 |
 */
 
+use Oatmael\WasmPhp\Util\WasmReader;
+
 expect()->extend('toBeOne', function () {
     return $this->toBe(1);
 });
@@ -51,4 +53,11 @@ function compileWat($wat)
     unlink($outputFile);
 
     return $wasm;
+}
+
+function wat2module($wat)
+{
+    $wasm = compileWat($wat);
+    $reader = new WasmReader();
+    return $reader->read($wasm);
 }

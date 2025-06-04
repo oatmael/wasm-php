@@ -11,6 +11,7 @@ use Oatmael\WasmPhp\Type\F32;
 use Oatmael\WasmPhp\Type\F64;
 use Oatmael\WasmPhp\Type\I32;
 use Oatmael\WasmPhp\Type\I64;
+use Oatmael\WasmPhp\Type\Memory;
 use Oatmael\WasmPhp\Util\ExportType;
 use Oatmael\WasmPhp\Util\ValueType;
 
@@ -57,6 +58,15 @@ class Module {
         return $this;
     }
 
+    public function getMemory(int $index = 0): Memory
+    {
+        if (!isset($this->store->memory[$index])) {
+            throw new Exception('Memory index out of bounds');
+        }
+
+        return $this->store->memory[$index];
+    }
+
     public function execute(string $root, array $args)
     {
         $this->stack = [];
@@ -72,7 +82,7 @@ class Module {
         }
 
         $export = array_find($this->store->exports, static fn (Export $export) => $export->type === ExportType::FUNCTION && $export->name === $root);
-        
+
         $function = $this->store->types[$this->store->functions[$export->idx - count($this->store->imports)]];
         $arity = count($function->results);
 
@@ -97,7 +107,7 @@ class Module {
             $provided = array_map(static fn ($arg) => get_class($arg), $args);
             throw new Exception('Bad export call - expected [' .implode(', ', $expected) . '], got [' . implode(', ', $provided) . ']');
         }
-        
+
         array_push($this->stack, ...$args);
 
         $this->store->pushFrame($this->stack, $this->call_stack, $export->idx);
@@ -130,7 +140,7 @@ class Module {
             }
 
             $frame->program_counter += 1;
-            
+
             /** @var InstructionInterface|null $instruction */
             $instruction = $frame->instructions[$frame->program_counter] ?? null;
             if (!$instruction) {

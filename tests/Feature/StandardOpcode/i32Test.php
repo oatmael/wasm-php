@@ -2,13 +2,39 @@
 
 namespace Tests\Feature\StandardOpcode;
 
-test('i32_add', function () {})->todo();
+use Oatmael\WasmPhp\Module;
+use Oatmael\WasmPhp\Type\I32;
+
+test('i32_add', function (Module $module) {
+  $ret = $module->execute('i32_add', [new I32(42), new I32(43)]);
+  expect($ret[0]->value)->toBe(85);
+})
+  ->with([
+    'i32AddModule' => fn() => wat2module(<<<WAT
+    (module
+      (func (export "i32_add") (param i32) (param i32) (result i32)
+        (i32.add (local.get 0) (local.get 1))
+      )
+    )
+    WAT)
+  ]);
 
 test('i32_and', function () {})->todo();
 
 test('i32_clz', function () {})->todo();
 
-test('i32_const', function () {})->todo();
+test('i32_const', function (Module $module) {
+  $ret = $module->execute('i32_const', []);
+  expect($ret[0]->value)->toBe(42);
+})->with([
+  'i32ConstModule' => fn() => wat2module(<<<WAT
+    (module
+      (func (export "i32_const") (result i32)
+        (i32.const 42)
+      )
+    )
+    WAT)
+]);
 
 test('i32_ctz', function () {})->todo();
 
@@ -74,13 +100,38 @@ test('i32_shr_s', function () {})->todo();
 
 test('i32_shr_u', function () {})->todo();
 
-test('i32_store', function () {})->todo();
+test('i32_store', function (Module $module) {
+  $module->execute('i32_store', [new I32(42), new I32(43)]);
+  $memory = $module->getMemory();
+  expect($memory->data[42])->toBe(43);
+})->with([
+  'i32StoreModule' => fn() => wat2module(<<<WAT
+    (module
+      (memory 1)
+      (func (export "i32_store") (param i32) (param i32) (result)
+        (i32.store (local.get 0) (local.get 1))
+      )
+    )
+    WAT)
+]);
 
 test('i32_store16', function () {})->todo();
 
 test('i32_store8', function () {})->todo();
 
-test('i32_sub', function () {})->todo();
+test('i32_sub', function (Module $module) {
+  // The stack is reversed, so the first value is the second operand
+  $ret = $module->execute('i32_sub', [new I32(42), new I32(43)]);
+  expect($ret[0]->value)->toBe(1);
+})->with([
+  'i32SubModule' => fn() => wat2module(<<<WAT
+    (module
+      (func (export "i32_sub") (param i32) (param i32) (result i32)
+        (i32.sub (local.get 0) (local.get 1))
+      )
+    )
+    WAT)
+]);
 
 test('i32_trunc_f32_s', function () {})->todo();
 

@@ -1,10 +1,11 @@
 <?php
 
 use Oatmael\WasmPhp\Execution\Store;
+use Oatmael\WasmPhp\Module;
 use Oatmael\WasmPhp\Type\I32;
 use Oatmael\WasmPhp\Util\WasmReader;
 
-test('add', function() {
+test('add', function () {
     $wasm = file_get_contents('examples/add.wasm');
 
     $util = new WasmReader();
@@ -19,7 +20,7 @@ test('add', function() {
     expect($ret[0]->value)->toBe($left->value + $right->value);
 });
 
-test('reverseSub', function() {
+test('reverseSub', function () {
     $wasm = file_get_contents('examples/reverseSub.wasm');
 
     $util = new WasmReader();
@@ -34,19 +35,7 @@ test('reverseSub', function() {
     expect($ret[0]->value)->toBe($right->value - $left->value);
 });
 
-test('importAdd', function() {
-    $wasm = file_get_contents('examples/importAdd.wasm');
-    // (module
-    //     (func $add (import "env" "add") (param i32) (result i32))
-    //     (func (export "call_add") (param i32) (result i32)
-    //         (local.get 0)
-    //         (call $add)
-    //     )
-    // )
-
-    $util = new WasmReader();
-    $module = $util->read($wasm);
-
+test('importAdd', function (Module $module) {
     $left = new I32(4);
     $right = new I32(26);
 
@@ -56,11 +45,20 @@ test('importAdd', function() {
         })
         ->execute('call_add', [$left]);
 
-    // TODO: write actual tests here
     expect($ret[0]->value)->toBe($right->value + $left->value);
-});
+})->with([
+    'importAddModule' => fn() => wat2module(<<<WAT
+        (module
+            (func \$add (import "env" "add") (param i32) (result i32))
+            (func (export "call_add") (param i32) (result i32)
+                (local.get 0)
+                (call \$add)
+            )
+        )
+        WAT)
+]);
 
-test('memory', function() {
+test('memory', function () {
     $wasm = file_get_contents('examples/memory.wasm');
 
     $util = new WasmReader();
@@ -72,7 +70,7 @@ test('memory', function() {
     expect($ret)->toBeEmpty();
 });
 
-test('data', function() {
+test('data', function () {
     $wasm = file_get_contents('examples/data.wasm');
 
     $util = new WasmReader();
@@ -85,7 +83,7 @@ test('data', function() {
     expect($ret)->toBeEmpty();
 });
 
-test('globals', function() {
+test('globals', function () {
     $wasm = file_get_contents('examples/globals.wasm');
 
     $util = new WasmReader();
@@ -97,12 +95,12 @@ test('globals', function() {
     expect($ret[0]->value)->toBe(31);
 });
 
-test('start', function() {
+test('start', function () {
     $wasm = file_get_contents('examples/start.wasm');
 
     $util = new WasmReader();
     $module = $util->read($wasm);
-    $module->setImport('env', 'init', function() {
+    $module->setImport('env', 'init', function () {
         var_dump('This is the start function');
     });
 
