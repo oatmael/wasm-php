@@ -577,7 +577,7 @@ enum SimdOpcode: int implements OpcodeEnum {
     case f64x2_mul                      = 0xf2;
     case f64x2_div                      = 0xf3;
     case f64x2_min                      = 0xf4;
-    case f64x2_macx                     = 0xf5;
+    case f64x2_max                      = 0xf5;
     case f64x2_pmin                     = 0xf6;
     case f64x2_pmax                     = 0xf7;
     case i32x4_trunc_sat_f32x4_s        = 0xf8;

@@ -8,7 +8,7 @@ use Oatmael\WasmPhp\Instruction\InstructionInterface;
 use Oatmael\WasmPhp\Instruction\SimdOpcode;
 use Oatmael\WasmPhp\Instruction\Opcode;
 
-#[Opcode(SimdOpcode::f64x2_macx)]
+#[Opcode(SimdOpcode::f64x2_max)]
 class F64x2Max implements InstructionInterface {
     public static function fromInput(string $input, int &$offset): InstructionInterface {
         return new self();

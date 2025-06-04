@@ -10,6 +10,7 @@ use Oatmael\WasmPhp\Type\I64;
 use Oatmael\WasmPhp\Type\Import;
 use Oatmael\WasmPhp\Type\Data;
 use Oatmael\WasmPhp\Type\Memory;
+use Oatmael\WasmPhp\Util\ValueType;
 
 class Store {
     protected array $import_callables;
@@ -40,7 +41,7 @@ class Store {
     public function initialise() {
         /** @var Data $data_section */
         foreach ($this->data as $data_section) {
-            
+
             /** @var Memory|null $data_memory */
             $data_memory = $memory[$data_section->memory_idx] ?? null;
             if (!$data_memory) {
@@ -93,11 +94,12 @@ class Store {
         /** @var Local $local */
         foreach ($code->locals as $local) {
             for ($i = 0; $i < $local->type_count; $i++) {
-                $locals[] = match (get_class($local->value_type)) {
-                    I32::class => new I32(0),
-                    I64::class => new I64(0),
-                    F32::class => new F32(0),
-                    F64::class => new F64(0),
+                $locals[] = match ($local->value_type) {
+                    ValueType::I32 => new I32(0),
+                    ValueType::I64 => new I64(0),
+                    ValueType::F32 => new F32(0),
+                    ValueType::F64 => new F64(0),
+                    default => throw new Exception('Invalid local type: ' . get_class($local->value_type)),
                 };
             }
         }
