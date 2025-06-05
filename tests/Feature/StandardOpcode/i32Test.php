@@ -8,9 +8,8 @@ use Oatmael\WasmPhp\Type\I32;
 test('i32_add', function (Module $module) {
   $ret = $module->execute('i32_add', [new I32(42), new I32(43)]);
   expect($ret[0]->value)->toBe(85);
-})
-  ->with([
-    'i32AddModule' => fn() => wat2module(<<<WAT
+})->with([
+  'module' => fn() => wat2module(<<<WAT
     (module
       (func (export "i32_add") (param i32) (param i32) (result i32)
         (i32.add (local.get 0) (local.get 1))
@@ -27,7 +26,7 @@ test('i32_const', function (Module $module) {
   $ret = $module->execute('i32_const', []);
   expect($ret[0]->value)->toBe(42);
 })->with([
-  'i32ConstModule' => fn() => wat2module(<<<WAT
+  'module' => fn() => wat2module(<<<WAT
     (module
       (func (export "i32_const") (result i32)
         (i32.const 42)
@@ -105,7 +104,7 @@ test('i32_store', function (Module $module) {
   $memory = $module->getMemory();
   expect($memory->data[42])->toBe(43);
 })->with([
-  'i32StoreModule' => fn() => wat2module(<<<WAT
+  'module' => fn() => wat2module(<<<WAT
     (module
       (memory 1)
       (func (export "i32_store") (param i32) (param i32) (result)
@@ -124,7 +123,7 @@ test('i32_sub', function (Module $module) {
   $ret = $module->execute('i32_sub', [new I32(42), new I32(43)]);
   expect($ret[0]->value)->toBe(1);
 })->with([
-  'i32SubModule' => fn() => wat2module(<<<WAT
+  'module' => fn() => wat2module(<<<WAT
     (module
       (func (export "i32_sub") (param i32) (param i32) (result i32)
         (i32.sub (local.get 0) (local.get 1))

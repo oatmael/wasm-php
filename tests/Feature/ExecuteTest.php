@@ -40,7 +40,7 @@ test('importAdd', function (Module $module) {
     $right = new I32(26);
 
     $ret = $module
-        ->setImport('env', 'add', function (Store $store, I32 $left) use ($right) {
+        ->setImport('env', 'add', function ($stack, $call_stack, Store $store, I32 $left) use ($right) {
             return new I32($left->value + $right->value);
         })
         ->execute('call_add', [$left]);

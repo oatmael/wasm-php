@@ -13,6 +13,6 @@ class IReturn implements InstructionInterface
     }
 
     public function execute(array &$stack, array &$call_stack, Store $store) {
-        throw new Exception('Not implemented: return opcode');
+        $store->popFrame($stack, $call_stack);
     }
 }

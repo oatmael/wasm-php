@@ -12,6 +12,9 @@ class Drop implements InstructionInterface {
     }
 
     public function execute(array &$stack, array &$call_stack, Store $store) {
-        throw new Exception('Not implemented: drop opcode');
+        $dropped = array_pop($stack);
+        if ($dropped === null) {
+            throw new Exception('Invalid stack state for drop opcode');
+        }
     }
 }

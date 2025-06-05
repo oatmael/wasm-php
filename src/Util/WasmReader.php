@@ -30,6 +30,7 @@ enum ValueType: int {
     case VEC       = 0x7B;
     case FUNCREF   = 0x70;
     case EXTERNREF = 0x6F;
+    case VOID      = 0x40;
 }
 
 enum Type: int {

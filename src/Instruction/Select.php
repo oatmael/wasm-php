@@ -12,6 +12,14 @@ class Select implements InstructionInterface {
     }
 
     public function execute(array &$stack, array &$call_stack, Store $store) {
-        throw new Exception('Not implemented: select opcode');
+        $condition = array_pop($stack);
+        $left = array_pop($stack);
+        $right = array_pop($stack);
+
+        if (!$condition === null || $left === null || $right === null) {
+            throw new Exception('Invalid stack state for select opcode');
+        }
+
+        $condition->value ? array_push($stack, $left) : array_push($stack, $right);
     }
 }

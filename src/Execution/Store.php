@@ -7,7 +7,6 @@ use Oatmael\WasmPhp\Type\F32;
 use Oatmael\WasmPhp\Type\F64;
 use Oatmael\WasmPhp\Type\I32;
 use Oatmael\WasmPhp\Type\I64;
-use Oatmael\WasmPhp\Type\Import;
 use Oatmael\WasmPhp\Type\Data;
 use Oatmael\WasmPhp\Type\Memory;
 use Oatmael\WasmPhp\Util\ValueType;
@@ -81,7 +80,8 @@ class Store {
                 throw new Exception('Undefined import ' . $import->module . ':' . $import->field);
             }
 
-            $ret = $import_func($this, ...$locals);
+            // TODO: provide a nicer interface for the parameters exposed to the import function (maybe some sort of reflection inference?)
+            $ret = $import_func($stack, $call_stack, $this, ...$locals);
             if ($ret) {
                 array_push($stack, ...(is_array($ret) ? $ret : [$ret]));
             }
@@ -105,7 +105,7 @@ class Store {
         }
 
         array_push($call_stack, new Frame(
-            program_counter: -1,
+            program_counter: -1, // The frame's PC is set to -1, as the first thing a frame does during execution is to increment it
             stack_pointer: count($stack),
             instructions: $code->instructions,
             arity: count($function->results),
@@ -118,7 +118,7 @@ class Store {
         /** @var Frame $frame */
         $frame = array_pop($call_stack);
         if (!$frame) {
-            throw new Exception('No frame found for end opcode');
+            throw new Exception('No frame to pop');
         }
 
         if ($frame->arity > 0) {
@@ -126,7 +126,7 @@ class Store {
             for ($i = 0; $i < $frame->arity; $i++){
                 $value = array_pop($stack);
                 if (!$value) {
-                    throw new Exception('No return value found for end opcode');
+                    throw new Exception('No return value found for frame, expected arity ' . $frame->arity);
                 }
                 $ret[] = $value;
             }

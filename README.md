@@ -47,7 +47,7 @@ $left = new I32(26);
 $right = new I32(4);
 
 $results = $module
-  ->setImport('env', 'exportedAdd', function (Store $store) use ($left, $right) {
+  ->setImport('env', 'exportedAdd', function () use ($left, $right) {
       return new I32($left->value + $right->value);
   })
   ->execute('add', []);

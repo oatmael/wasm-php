@@ -4,16 +4,17 @@ namespace Oatmael\WasmPhp\Instruction;
 
 use Exception;
 use Oatmael\WasmPhp\Execution\Store;
+use Oatmael\WasmPhp\Util\ValueType;
 use Oatmael\WasmPhp\Util\WasmReader;
 
 #[Opcode(StandardOpcode::if)]
 class IIf implements InstructionInterface {
     public function __construct(
-        public readonly int $block_type,
+        public readonly ValueType $block_type,
     ) {}
 
     public static function fromInput(string $input, int &$offset): InstructionInterface {
-        $block_type = WasmReader::readLEB128int32($input, $offset);
+        $block_type = ValueType::from(WasmReader::readUint8($input, $offset));
         return new self($block_type);
     }
 
