@@ -55,6 +55,72 @@ $results = $module
 echo $results[0]->value; // 30
 ```
 
+## Implementation Status
+Below are the implementation statuses of WebAssembly proposals by phase. See [https://github.com/WebAssembly/proposals](https://github.com/WebAssembly/proposals).
+
+| Status | Meaning |
+|:--------:|---------|
+| ✅ | Fully implemented |
+| 🚧 | Partially implemented, WIP |
+| ❌ | Not implemented |
+| 🚫 | Will not be implemented |
+
+### Phase 5 - Standardized
+| Proposal | Status | Notes |
+|----------|:--------:|--------|
+| [Tail call](https://github.com/WebAssembly/tail-call) | ❌ |  |
+| [Extended Constant Expressions](https://github.com/WebAssembly/extended-const) | ❌ |  |
+| [Typed Function References](https://github.com/WebAssembly/function-references) | 🚧 |  |
+| [Garbage collection](https://github.com/WebAssembly/gc) | ❌ |  |
+| [Multiple memories](https://github.com/WebAssembly/multi-memory) | 🚧 |  |
+| [Relaxed SIMD](https://github.com/WebAssembly/relaxed-simd) | ❌ |  |
+| [Custom Annotation Syntax](https://github.com/WebAssembly/annotations) | ❌ |  |
+| [Branch Hinting](https://github.com/WebAssembly/branch-hinting) | ❌ |  |
+
+### Phase 4 - Standardization
+| Proposal | Status | Notes |
+|----------|:--------:|--------|
+| [Threads](https://github.com/webassembly/threads) | ❌ | Will only emulate threads |
+| [Exception handling](https://github.com/WebAssembly/exception-handling) | ❌ |  |
+| [JS String Builtins](https://github.com/WebAssembly/js-string-builtins) | 🚫 | JavaScript-specific |
+| [Memory64](https://github.com/WebAssembly/memory64) | ❌ |  |
+| [JS Promise Integration](https://github.com/WebAssembly/js-promise-integration) | 🚫 | JavaScript-specific |
+
+### Phase 3 - Implementation
+| Proposal | Status | Notes |
+|----------|:--------:|--------|
+| [Web Content Security Policy](https://github.com/WebAssembly/content-security-policy) | 🚫 | Web-specific |
+| [Type Reflection for WebAssembly JavaScript API](https://github.com/WebAssembly/js-types) | 🚫 | JavaScript-specific |
+| [ESM Integration](https://github.com/WebAssembly/esm-integration) | 🚫 | JavaScript-specific |
+| [Wide Arithmetic](https://github.com/WebAssembly/wide-arithmetic) | ❌ |  |
+
+### Phase 2 - Specification
+| Proposal | Status | Notes |
+|----------|:--------:|--------|
+| [Relaxed dead code validation](https://github.com/WebAssembly/relaxed-dead-code-validation) | ❌ |  |
+| [Numeric Values in WAT Data Segments](https://github.com/WebAssembly/wat-numeric-values) | ❌ |  |
+| [Extended Name Section](https://github.com/WebAssembly/extended-name-section) | ❌ |  |
+| [Custom Page Sizes](https://github.com/WebAssembly/custom-page-sizes) | ❌ |  |
+| [Stack Switching](https://github.com/WebAssembly/stack-switching) | ❌ |  |
+| [Rounding Variants](https://github.com/WebAssembly/rounding-mode-control) | ❌ |  |
+| [Compilation Hints](https://github.com/WebAssembly/compilation-hints) | ❌ |  |
+| [Custom Descriptors and JS Interop](https://github.com/WebAssembly/custom-descriptors) | 🚫 | JavaScript-specific |
+
+### Phase 1 - Proposal
+| Proposal | Status | Notes |
+|----------|:--------:|--------|
+| [Type Imports](https://github.com/WebAssembly/proposal-type-imports) | ❌ |  |
+| [Component Model](https://github.com/WebAssembly/component-model) | ❌ |  |
+| [WebAssembly C and C++ API](https://github.com/WebAssembly/wasm-c-api) | ❌ |  |
+| [Flexible Vectors](https://github.com/WebAssembly/flexible-vectors) | ❌ |  |
+| [Memory control](https://github.com/WebAssembly/memory-control) | ❌ |  |
+| [Reference-Typed Strings](https://github.com/WebAssembly/stringref) | ❌ |  |
+| [Profiles](https://github.com/WebAssembly/profiles) | ❌ |  |
+| [Shared-Everything Threads](https://github.com/WebAssembly/shared-everything-threads) | ❌ |  |
+| [Frozen Values](https://github.com/WebAssembly/frozen-values) | ❌ |  |
+| [Half Precision](https://github.com/WebAssembly/half-precision) | ❌ |  |
+| [Compact Import Section](https://github.com/WebAssembly/compact-import-section) | ❌ |  |
+
 ## Why run WASM inside PHP?
 WASM in it's current state has proven itself to be an incredibly useful for running sandboxed, optimised code.
 
