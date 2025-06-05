@@ -131,6 +131,7 @@ class Module {
 
     protected function executeFrame()
     {
+        // var_dump(end($this->call_stack));
         $iters = 0;
         while ($iters < self::MAX_ITERATIONS) {
             /** @var Frame|null $frame */
@@ -146,6 +147,11 @@ class Module {
             if (!$instruction) {
                 break;
             }
+
+            var_dump([
+                'instruction' => $instruction::class,
+                'program_counter' => $frame->program_counter,
+            ]);
 
             $instruction->execute($this->stack, $this->call_stack, $this->store);
 

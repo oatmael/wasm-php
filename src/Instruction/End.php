@@ -3,6 +3,8 @@
 namespace Oatmael\WasmPhp\Instruction;
 
 use Oatmael\WasmPhp\Execution\Store;
+use Oatmael\WasmPhp\Execution\Frame;
+use Oatmael\WasmPhp\Execution\ControlStackEntry;
 
 #[Opcode(StandardOpcode::end)]
 class End implements InstructionInterface {
@@ -13,9 +15,14 @@ class End implements InstructionInterface {
 
     public function execute(array &$stack, array &$call_stack, Store $store)
     {
-        // TODO: This is currently functionally equivalent to `return`, but `end` should only do so when the current block is a function.
-        // This will need to handle blocks appropriately in the future.
-        $store->popFrame($stack, $call_stack);
+        /** @var Frame $frame */
+        $frame = end($call_stack);
+        if (count($frame->control_stack)) {
+            /** @var ControlStackEntry */
+            $control_stack_entry = array_pop($frame->control_stack);
+        } else {
+            $store->popFrame($stack, $call_stack);
+        }
     }
 
 }

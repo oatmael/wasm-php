@@ -9,6 +9,7 @@ class Frame {
         public array $instructions,
         public int $arity,
         public array $locals,
+        public array $control_stack = [],
     )
     {
     }

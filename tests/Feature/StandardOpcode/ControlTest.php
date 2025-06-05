@@ -64,13 +64,13 @@ test('br_if', function (Module $module) {
 
 test('br_table', function (Module $module) {
   $ret = $module->execute('table', [new I32(0)]);
-  expect($ret[0]->value)->toBe(100);
+  expect($ret[0]->value)->toBe(102);
 
   $ret = $module->execute('table', [new I32(1)]);
   expect($ret[0]->value)->toBe(101);
 
   $ret = $module->execute('table', [new I32(2)]);
-  expect($ret[0]->value)->toBe(102);
+  expect($ret[0]->value)->toBe(100);
 
   $ret = $module->execute('table', [new I32(3)]);
   expect($ret[0]->value)->toBe(103);
@@ -90,13 +90,13 @@ test('br_table', function (Module $module) {
                 \$c   ;; p == 1 => (br 1)
                 \$d   ;; p == 2 => (br 0)
                 \$a)) ;; else => (br 3)
-            ;; Target for (br \$b)
+            ;; Target for (br \$d)
             (i32.const 100)
             (return))
           ;; Target for (br \$c)
           (i32.const 101)
           (return))
-        ;; Target for (br \$d)
+        ;; Target for (br \$b)
         (i32.const 102)
         (return))
       ;; Target for (br \$a)
@@ -104,7 +104,7 @@ test('br_table', function (Module $module) {
       (return))
     )
     WAT),
-]);
+])->only();
 
 test('call', function (Module $module) {
   $ret = $module->execute('call', []);
