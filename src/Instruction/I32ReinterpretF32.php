@@ -4,6 +4,8 @@ namespace Oatmael\WasmPhp\Instruction;
 
 use Exception;
 use Oatmael\WasmPhp\Execution\Store;
+use Oatmael\WasmPhp\Type\F32;
+use Oatmael\WasmPhp\Type\I32;
 
 #[Opcode(StandardOpcode::i32_reinterpret_f32)]
 class I32ReinterpretF32 implements InstructionInterface {
@@ -12,6 +14,13 @@ class I32ReinterpretF32 implements InstructionInterface {
     }
 
     public function execute(array &$stack, array &$call_stack, Store $store) {
-        throw new Exception('Not implemented: i32.reinterpret_f32 opcode');
+        $target = array_pop($stack);
+        if (!($target instanceof F32)) {
+            throw new Exception('Invalid stack params for i32.reinterpret_f32 opcode');
+        }
+
+        $reinterpret = pack('g', $target->value);
+        $reinterpret = unpack('V', $reinterpret)[1];
+        array_push($stack, new I32($reinterpret));
     }
 }

@@ -3,6 +3,7 @@
 namespace Tests\Feature\StandardOpcode;
 
 use Oatmael\WasmPhp\Module;
+use Oatmael\WasmPhp\Type\F32;
 use Oatmael\WasmPhp\Type\I32;
 
 test('i32_add', function (Module $module) {
@@ -382,9 +383,32 @@ test('i32_or', function (Module $module) {
     WAT)
 ]);
 
-test('i32_popcnt', function () {})->todo();
+test('i32_popcnt', function (Module $module) {
+  $ret = $module->execute('i32_popcnt', [new I32(0b1010)]);
+  expect($ret[0]->value)->toBe(2);
+})->with([
+  'module' => fn() => wat2module(<<<WAT
+    (module
+      (func (export "i32_popcnt") (param i32) (result i32)
+        (i32.popcnt (local.get 0))
+      )
+    )
+    WAT)
+]);
 
-test('i32_reinterpret_f32', function () {})->todo();
+test('i32_reinterpret_f32', function (Module $module) {
+  $ret = $module->execute('i32_reinterpret_f32', [new F32(3.14)]);
+  expect($ret[0]->value)->toBe(1078523331);
+
+})->with([
+  'module' => fn() => wat2module(<<<WAT
+    (module
+      (func (export "i32_reinterpret_f32") (param f32) (result i32)
+        (i32.reinterpret_f32 (local.get 0))
+      )
+    )
+    WAT)
+]);
 
 test('i32_rem_s', function () {})->todo();
 
