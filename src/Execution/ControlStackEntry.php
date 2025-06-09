@@ -9,6 +9,7 @@ class ControlStackEntry
     public function __construct(
         public int $break_target,
         public Func $return_type,
+        public bool $if_block = false,
     )
     {
     }

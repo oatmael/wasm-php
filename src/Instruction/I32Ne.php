@@ -4,6 +4,7 @@ namespace Oatmael\WasmPhp\Instruction;
 
 use Exception;
 use Oatmael\WasmPhp\Execution\Store;
+use Oatmael\WasmPhp\Type\I32;
 
 #[Opcode(StandardOpcode::i32_ne)]
 class I32Ne implements InstructionInterface {
@@ -12,6 +13,13 @@ class I32Ne implements InstructionInterface {
     }
 
     public function execute(array &$stack, array &$call_stack, Store $store) {
-        throw new Exception('Not implemented: i32.ne opcode');
+        $left = array_pop($stack);
+        $right = array_pop($stack);
+
+        if (!$left instanceof I32 || !$right instanceof I32) {
+            throw new Exception('Invalid stack params for i32.ne opcode');
+        }
+
+        array_push($stack, new I32($left->value !== $right->value ? 1 : 0));
     }
 }

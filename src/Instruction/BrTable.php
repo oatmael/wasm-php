@@ -37,14 +37,12 @@ class BrTable implements InstructionInterface
     }
 
     $control_stack = [];
-    for ($i = 0; $i < $break_depth; $i++) {
+    for ($i = 0; $i <= $break_depth; $i++) {
       $control_stack[] = array_pop($frame->control_stack);
     }
 
     /** @var ControlStackEntry $result */
     $result = end($control_stack);
     $frame->program_counter = $result->break_target;
-
-    var_dump($frame);
   }
 }

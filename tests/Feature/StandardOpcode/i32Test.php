@@ -77,7 +77,21 @@ test('i32_lt_u', function () {})->todo();
 
 test('i32_mul', function () {})->todo();
 
-test('i32_ne', function () {})->todo();
+test('i32_ne', function (Module $module) {
+  $ret = $module->execute('i32_ne', [new I32(42), new I32(43)]);
+  expect($ret[0]->value)->toBe(1);
+
+  $ret = $module->execute('i32_ne', [new I32(42), new I32(42)]);
+  expect($ret[0]->value)->toBe(0);
+})->with([
+  'module' => fn() => wat2module(<<<WAT
+    (module
+      (func (export "i32_ne") (param i32) (param i32) (result i32)
+        (i32.ne (local.get 0) (local.get 1))
+      )
+    )
+    WAT)
+]);
 
 test('i32_or', function () {})->todo();
 

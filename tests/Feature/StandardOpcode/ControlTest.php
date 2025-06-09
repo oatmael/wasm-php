@@ -104,7 +104,7 @@ test('br_table', function (Module $module) {
       (return))
     )
     WAT),
-])->only();
+]);
 
 test('call', function (Module $module) {
   $ret = $module->execute('call', []);

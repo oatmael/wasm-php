@@ -31,7 +31,7 @@ class Block implements InstructionInterface
     $block_count = 1;
     for ($i = $frame->program_counter + 1; $i < count($frame->instructions); $i++) {
       $instruction = $frame->instructions[$i];
-      if ($instruction instanceof Block || $instruction instanceof Loop) {
+      if ($instruction instanceof Block || $instruction instanceof Loop || $instruction instanceof IIf) {
         $block_count++;
       } elseif ($instruction instanceof End) {
         $block_count--;

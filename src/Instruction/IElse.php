@@ -15,6 +15,14 @@ class IElse implements InstructionInterface
 
     public function execute(array &$stack, array &$call_stack, Store $store)
     {
-        throw new Exception('Not implemented: else opcode');
+        // This isn't the correct way to handle the else instruction per spec,
+        // but in normal execution else should only be reached when the top of the control stack is an if instruction.
+        $frame = end($call_stack);
+        $control_stack_entry = array_pop($frame->control_stack);
+        if ($control_stack_entry === null) {
+            throw new Exception('Invalid control stack entry for else instruction');
+        }
+
+        $frame->program_counter = $control_stack_entry->break_target;
     }
 }
