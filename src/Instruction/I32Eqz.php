@@ -4,6 +4,7 @@ namespace Oatmael\WasmPhp\Instruction;
 
 use Exception;
 use Oatmael\WasmPhp\Execution\Store;
+use Oatmael\WasmPhp\Type\I32;
 
 #[Opcode(StandardOpcode::i32_eqz)]
 class I32Eqz implements InstructionInterface {
@@ -12,6 +13,11 @@ class I32Eqz implements InstructionInterface {
     }
 
     public function execute(array &$stack, array &$call_stack, Store $store) {
-        throw new Exception('Not implemented: i32.eqz opcode');
+        $test = array_pop($stack);
+        if (!($test instanceof I32)) {
+            throw new Exception('Invalid stack parameter for i32.eqz opcode');
+        }
+        
+        array_push($stack, new I32($test->value === 0 ? 1 : 0));
     }
 }

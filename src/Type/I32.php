@@ -16,4 +16,9 @@ class I32 implements ValueInterface {
     public function getValue() { 
         return $this->value;
     }
+
+    public function toUnsigned(): self
+    {
+        return new self($this->value >= 0 ? $this->value : (2 ** 32) + $this->value);
+    }
 }
