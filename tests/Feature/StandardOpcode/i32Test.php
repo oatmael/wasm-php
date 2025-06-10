@@ -22,7 +22,6 @@ test('i32_add', function (Module $module) {
 test('i32_and', function (Module $module) {
   $ret = $module->execute('i32_and', [new I32(42), new I32(43)]);
   expect($ret[0]->value)->toBe(42 & 43);
-
 })->with([
   'module' => fn() => wat2module(<<<WAT
     (module
@@ -36,7 +35,6 @@ test('i32_and', function (Module $module) {
 test('i32_clz', function (Module $module) {
   $ret = $module->execute('i32_clz', [new I32(0b1010)]);
   expect($ret[0]->value)->toBe(28);
-
 })->with([
   'module' => fn() => wat2module(<<<WAT
     (module
@@ -85,7 +83,6 @@ test('i32_div_s', function (Module $module) {
 
   $ret = $module->execute('i32_div_s', [new I32(-6), new I32(42)]);
   expect($ret[0]->value)->toBe(-7);
-
 })->with([
   'module' => fn() => wat2module(<<<WAT
     (module
@@ -124,7 +121,6 @@ test('i32_eq', function (Module $module) {
 
   $ret = $module->execute('i32_eq', [new I32(42), new I32(42)]);
   expect($ret[0]->value)->toBe(1);
-
 })->with([
   'module' => fn() => wat2module(<<<WAT
     (module
@@ -399,7 +395,6 @@ test('i32_popcnt', function (Module $module) {
 test('i32_reinterpret_f32', function (Module $module) {
   $ret = $module->execute('i32_reinterpret_f32', [new F32(3.14)]);
   expect($ret[0]->value)->toBe(1078523331);
-
 })->with([
   'module' => fn() => wat2module(<<<WAT
     (module
@@ -410,9 +405,49 @@ test('i32_reinterpret_f32', function (Module $module) {
     WAT)
 ]);
 
-test('i32_rem_s', function () {})->todo();
+test('i32_rem_s', function (Module $module) {
+  $ret = $module->execute('i32_rem_s', [new I32(42), new I32(6)]);
+  expect($ret[0]->value)->toBe(6);
 
-test('i32_rem_u', function () {})->todo();
+  $ret = $module->execute('i32_rem_s', [new I32(-42), new I32(-6)]);
+  expect($ret[0]->value)->toBe(-6);
+
+  $ret = $module->execute('i32_rem_s', [new I32(-42), new I32(6)]);
+  expect($ret[0]->value)->toBe(6);
+
+  $ret = $module->execute('i32_rem_s', [new I32(42), new I32(-6)]);
+  expect($ret[0]->value)->toBe(-6);
+})->with([
+  'module' => fn() => wat2module(<<<WAT
+    (module
+      (func (export "i32_rem_s") (param i32) (param i32) (result i32)
+        (i32.rem_s (local.get 0) (local.get 1))
+      )
+    )
+    WAT)
+]);
+
+test('i32_rem_u', function (Module $module) {
+  $ret = $module->execute('i32_rem_u', [new I32(42), new I32(6)]);
+  expect($ret[0]->value)->toBe(6);
+
+  $ret = $module->execute('i32_rem_u', [new I32(-42), new I32(-6)]);
+  expect($ret[0]->value)->toBe(36);
+
+  $ret = $module->execute('i32_rem_u', [new I32(-42), new I32(6)]);
+  expect($ret[0]->value)->toBe(6);
+
+  $ret = $module->execute('i32_rem_u', [new I32(42), new I32(-6)]);
+  expect($ret[0]->value)->toBe(40);
+})->with([
+  'module' => fn() => wat2module(<<<WAT
+    (module
+      (func (export "i32_rem_u") (param i32) (param i32) (result i32)
+        (i32.rem_u (local.get 0) (local.get 1))
+      )
+    )
+    WAT)
+]);
 
 test('i32_rotl', function () {})->todo();
 
