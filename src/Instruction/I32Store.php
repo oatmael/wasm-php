@@ -28,7 +28,7 @@ class I32Store implements InstructionInterface {
 
         $memory = $store->memory[0]; // Only 1 memory is valid for v1
         $values = array_values(unpack("C4", pack("V", $value->getValue())));
-        array_splice($memory->data, $at, $value->getUSize(), $values);
+        array_splice($memory->data, $at, 4, $values);
     }
 
 }

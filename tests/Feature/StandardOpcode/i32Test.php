@@ -314,15 +314,92 @@ test('i32_le_u', function (Module $module) {
     WAT)
 ]);
 
-test('i32_load', function () {})->todo();
+test('i32_load', function (Module $module) {
+  $ret = $module->execute('i32_load', [new I32(42), new I32(43)]);
+  expect($ret[0]->getValue())->toBe(43);
+})->with([
+  'module' => fn() => wat2module(<<<WAT
+    (module
+      (memory 1)
+      (func (export "i32_load") (param i32) (param i32) (result i32)
+        (i32.store (local.get 0) (local.get 1))
+        (i32.load (local.get 0))
+      )
+    )
+    WAT)
+]);
 
-test('i32_load16_s', function () {})->todo();
+test('i32_load16_s', function (Module $module) {
+  $ret = $module->execute('i32_load16_s', [new I32(0), new I32(0b10101010101010101010101010101010)]);
+  expect($ret[0]->getValue())->toBe(0b11111111111111111010101010101010);
 
-test('i32_load16_u', function () {})->todo();
+  $ret = $module->execute('i32_load16_s', [new I32(0), new I32(0b01010101010101010101010101010101)]);
+  expect($ret[0]->getValue())->toBe(0b0101010101010101);
+})->with([
+  'module' => fn() => wat2module(<<<WAT
+    (module
+      (memory 1)
+      (func (export "i32_load16_s") (param i32) (param i32) (result i32)
+        (i32.store (local.get 0) (local.get 1))
+        (i32.load16_s (local.get 0))
+      )
+    )
+    WAT)
+]);
 
-test('i32_load8_s', function () {})->todo();
+test('i32_load16_u', function (Module $module) {
+  $ret = $module->execute('i32_load16_u', [new I32(0), new I32(0b10101010101010101010101010101010)]);
+  expect($ret[0]->getValue())->toBe(0b1010101010101010);
 
-test('i32_load8_u', function () {})->todo();
+  $ret = $module->execute('i32_load16_u', [new I32(0), new I32(0b01010101010101010101010101010101)]);
+  expect($ret[0]->getValue())->toBe(0b0101010101010101);
+})->with([
+  'module' => fn() => wat2module(<<<WAT
+    (module
+      (memory 1)
+      (func (export "i32_load16_u") (param i32) (param i32) (result i32)
+        (i32.store (local.get 0) (local.get 1))
+        (i32.load16_u (local.get 0))
+      )
+    )
+    WAT)
+]);
+
+test('i32_load8_s', function (Module $module) {
+  $ret = $module->execute('i32_load8_s', [new I32(0), new I32(0b10101010101010101010101010101010)]);
+  expect($ret[0]->getValue())->toBe(0b11111111111111111111111110101010);
+
+  $ret = $module->execute('i32_load8_s', [new I32(0), new I32(0b01010101010101010101010101010101)]);
+  expect($ret[0]->getValue())->toBe(0b01010101);
+})->with([
+  'module' => fn() => wat2module(<<<WAT
+    (module
+      (memory 1)
+      (func (export "i32_load8_s") (param i32) (param i32) (result i32)
+        (i32.store (local.get 0) (local.get 1))
+        (i32.load8_s (local.get 0))
+      )
+    )
+    WAT)
+]);
+
+test('i32_load8_u', function (Module $module) {
+  $ret = $module->execute('i32_load8_u', [new I32(0), new I32(0b10101010101010101010101010101010)]);
+  expect($ret[0]->getValue())->toBe(0b10101010);
+
+  $ret = $module->execute('i32_load8_u', [new I32(0), new I32(0b01010101010101010101010101010101)]);
+  expect($ret[0]->getValue())->toBe(0b01010101);
+})->with([
+  'module' => fn() => wat2module(<<<WAT
+    (module
+      (memory 1)
+      (func (export "i32_load8_u") (param i32) (param i32) (result i32)
+        (i32.store (local.get 0) (local.get 1))
+        (i32.load8_u (local.get 0))
+      )
+    )
+    WAT)
+]);
 
 test('i32_lt_s', function (Module $module) {
   $ret = $module->execute('i32_lt_s', [new I32(42), new I32(42)]);
@@ -576,9 +653,12 @@ test('i32_shr_u', function (Module $module) {
 ]);
 
 test('i32_store', function (Module $module) {
-  $module->execute('i32_store', [new I32(42), new I32(43)]);
+  $module->execute('i32_store', [new I32(42), new I32(0b11111111111111111010101001010101)]);
   $memory = $module->getMemory();
-  expect($memory->data[42])->toBe(43);
+  expect($memory->data[42])->toBe(0b01010101);
+  expect($memory->data[43])->toBe(0b10101010);
+  expect($memory->data[44])->toBe(0b11111111);
+  expect($memory->data[45])->toBe(0b11111111);
 })->with([
   'module' => fn() => wat2module(<<<WAT
     (module
@@ -590,9 +670,41 @@ test('i32_store', function (Module $module) {
     WAT)
 ]);
 
-test('i32_store16', function () {})->todo();
+test('i32_store16', function (Module $module) {
+  $module->execute('i32_store16', [new I32(42), new I32(0b11111111111111111010101001010101)]);
+  $memory = $module->getMemory();
+  expect($memory->data[42])->toBe(0b01010101);
+  expect($memory->data[43])->toBe(0b10101010);
+  expect($memory->data[44])->not()->toBe(0b11111111);
+  expect($memory->data[45])->not()->toBe(0b11111111);
+})->with([
+  'module' => fn() => wat2module(<<<WAT
+    (module
+      (memory 1)
+      (func (export "i32_store16") (param i32) (param i32) (result)
+        (i32.store16 (local.get 0) (local.get 1))
+      )
+    )
+    WAT)
+]);
 
-test('i32_store8', function () {})->todo();
+test('i32_store8', function (Module $module) {
+  $module->execute('i32_store8', [new I32(42), new I32(0b11111111111111111010101001010101)]);
+  $memory = $module->getMemory();
+  expect($memory->data[42])->toBe(0b01010101);
+  expect($memory->data[43])->not()->toBe(0b10101010);
+  expect($memory->data[44])->not()->toBe(0b11111111);
+  expect($memory->data[45])->not()->toBe(0b11111111);
+})->with([
+  'module' => fn() => wat2module(<<<WAT
+    (module
+      (memory 1)
+      (func (export "i32_store8") (param i32) (param i32) (result)
+        (i32.store8 (local.get 0) (local.get 1))
+      )
+    )
+    WAT)
+]);
 
 test('i32_sub', function (Module $module) {
   // The stack is reversed, so the first value is the second operand
