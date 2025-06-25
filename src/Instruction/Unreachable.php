@@ -3,7 +3,7 @@
 namespace Oatmael\WasmPhp\Instruction;
 
 use Oatmael\WasmPhp\Execution\Store;
-use Oatmael\WasmPhp\Execution\UnreachableException;
+use Oatmael\WasmPhp\Exception\UnreachableException;
 
 #[Opcode(StandardOpcode::unreachable)]
 class Unreachable implements InstructionInterface

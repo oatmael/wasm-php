@@ -2,9 +2,12 @@
 
 namespace Tests\Feature\StandardOpcode;
 
+use Oatmael\WasmPhp\Exception\BadIntegerCastException;
 use Oatmael\WasmPhp\Module;
 use Oatmael\WasmPhp\Type\F32;
+use Oatmael\WasmPhp\Type\F64;
 use Oatmael\WasmPhp\Type\I32;
+use Oatmael\WasmPhp\Type\I64;
 
 test('i32_add', function (Module $module) {
   $ret = $module->execute('i32_add', [new I32(42), new I32(43)]);
@@ -720,15 +723,92 @@ test('i32_sub', function (Module $module) {
     WAT)
 ]);
 
-test('i32_trunc_f32_s', function () {})->todo();
+test('i32_trunc_f32_s', function (Module $module) {
+  $ret = $module->execute('i32_trunc_f32_s', [new F32(3.14)]);
+  expect($ret[0]->getValue())->toBe(3);
 
-test('i32_trunc_f32_u', function () {})->todo();
+  $ret = $module->execute('i32_trunc_f32_s', [new F32(-3.14)]);
+  expect($ret[0]->getValue())->toBe(-3);
 
-test('i32_trunc_f64_s', function () {})->todo();
+  expect(fn() => $module->execute('i32_trunc_f32_s', [new F32(NAN)]))->toThrow(BadIntegerCastException::class);
+  expect(fn() => $module->execute('i32_trunc_f32_s', [new F32(INF)]))->toThrow(BadIntegerCastException::class);
+})->with([
+  'module' => fn() => wat2module(<<<WAT
+    (module
+      (func (export "i32_trunc_f32_s") (param f32) (result i32)
+        (i32.trunc_f32_s (local.get 0))
+      )
+    )
+    WAT)
+]);
 
-test('i32_trunc_f64_u', function () {})->todo();
+test('i32_trunc_f32_u', function (Module $module) {
+  $ret = $module->execute('i32_trunc_f32_u', [new F32(3.14)]);
+  expect($ret[0]->getValue())->toBe(3);
 
-test('i32_wrap_i64', function () {})->todo();
+  expect(fn() => $module->execute('i32_trunc_f32_u', [new F32(NAN)]))->toThrow(BadIntegerCastException::class);
+  expect(fn() => $module->execute('i32_trunc_f32_u', [new F32(INF)]))->toThrow(BadIntegerCastException::class);
+  expect(fn() => $module->execute('i32_trunc_f32_u', [new F32(-3.14)]))->toThrow(BadIntegerCastException::class);
+})->with([
+  'module' => fn() => wat2module(<<<WAT
+    (module
+      (func (export "i32_trunc_f32_u") (param f32) (result i32)
+        (i32.trunc_f32_u (local.get 0))
+      )
+    )
+    WAT)
+]);
+
+test('i32_trunc_f64_s', function (Module $module) {
+  $ret = $module->execute('i32_trunc_f64_s', [new F64(3.14)]);
+  expect($ret[0]->getValue())->toBe(3);
+
+  $ret = $module->execute('i32_trunc_f64_s', [new F64(-3.14)]);
+  expect($ret[0]->getValue())->toBe(-3);
+
+  expect(fn() => $module->execute('i32_trunc_f64_s', [new F64(NAN)]))->toThrow(BadIntegerCastException::class);
+  expect(fn() => $module->execute('i32_trunc_f64_s', [new F64(INF)]))->toThrow(BadIntegerCastException::class);
+})->with([
+  'module' => fn() => wat2module(<<<WAT
+    (module
+      (func (export "i32_trunc_f64_s") (param f64) (result i32)
+        (i32.trunc_f64_s (local.get 0))
+      )
+    )
+    WAT)
+]);
+
+test('i32_trunc_f64_u', function (Module $module) {
+  $ret = $module->execute('i32_trunc_f64_u', [new F64(3.14)]);
+  expect($ret[0]->getValue())->toBe(3);
+
+  expect(fn() => $module->execute('i32_trunc_f64_u', [new F64(NAN)]))->toThrow(BadIntegerCastException::class);
+  expect(fn() => $module->execute('i32_trunc_f64_u', [new F64(INF)]))->toThrow(BadIntegerCastException::class);
+  expect(fn() => $module->execute('i32_trunc_f64_u', [new F64(-3.14)]))->toThrow(BadIntegerCastException::class);
+})->with([
+  'module' => fn() => wat2module(<<<WAT
+    (module
+      (func (export "i32_trunc_f64_u") (param f64) (result i32)
+        (i32.trunc_f64_u (local.get 0))
+      )
+    )
+    WAT)
+]);
+
+test('i32_wrap_i64', function (Module $module) {
+  $ret = $module->execute('i32_wrap_i64', [
+    new I64(0b0111111111111111101010100101010111111111111111111010101001010101)
+  ]);
+  expect($ret[0]->getValue())->toBe(0b11111111111111111010101001010101);
+})->with([
+  'module' => fn() => wat2module(<<<WAT
+    (module
+      (func (export "i32_wrap_i64") (param i64) (result i32)
+        (i32.wrap_i64 (local.get 0))
+      )
+    )
+    WAT)
+]);
 
 test('i32_xor', function (Module $module) {
   $ret = $module->execute('i32_xor', [new I32(42), new I32(43)]);

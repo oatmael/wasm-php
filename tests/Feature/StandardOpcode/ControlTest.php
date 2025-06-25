@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\StandardOpcode;
 
-use Oatmael\WasmPhp\Execution\UnreachableException;
+use Oatmael\WasmPhp\Exception\UnreachableException;
 use Oatmael\WasmPhp\Module;
 use Oatmael\WasmPhp\Type\I32;
 
