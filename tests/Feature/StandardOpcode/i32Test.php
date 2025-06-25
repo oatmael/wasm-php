@@ -147,9 +147,37 @@ test('i32_eqz', function (Module $module) {
     WAT)
 ]);
 
-test('i32_extend16_s', function () {})->todo();
+test('i32_extend16_s', function (Module $module) {
+  $ret = $module->execute('i32_extend16_s', [new I32(0b1010101010101010)]);
+  expect($ret[0]->value)->toBe(0b11111111111111111010101010101010);
 
-test('i32_extend8_s', function () {})->todo();
+  $ret = $module->execute('i32_extend16_s', [new I32(0b0101010101010101)]);
+  expect($ret[0]->value)->toBe(0b0101010101010101);
+})->with([
+  'module' => fn() => wat2module(<<<WAT
+    (module
+      (func (export "i32_extend16_s") (param i32) (result i32)
+        (i32.extend16_s (local.get 0))
+      )
+    )
+    WAT)
+]);
+
+test('i32_extend8_s', function (Module $module) {
+  $ret = $module->execute('i32_extend8_s', [new I32(0b10101010)]);
+  expect($ret[0]->value)->toBe(0b11111111111111111111111110101010);
+
+  $ret = $module->execute('i32_extend8_s', [new I32(0b01010101)]);
+  expect($ret[0]->value)->toBe(0b01010101);
+})->with([
+  'module' => fn() => wat2module(<<<WAT
+    (module
+      (func (export "i32_extend8_s") (param i32) (result i32)
+        (i32.extend8_s (local.get 0))
+      )
+    )
+    WAT)
+]);
 
 test('i32_ge_s', function (Module $module) {
   $ret = $module->execute('i32_ge_s', [new I32(42), new I32(42)]);
