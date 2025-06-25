@@ -449,15 +449,100 @@ test('i32_rem_u', function (Module $module) {
     WAT)
 ]);
 
-test('i32_rotl', function () {})->todo();
+test('i32_rotl', function (Module $module) {
+  $ret = $module->execute('i32_rotl', [new I32(1), new I32(0b1010)]);
+  expect($ret[0]->value)->toBe(0b10100);
 
-test('i32_rotr', function () {})->todo();
+  $ret = $module->execute('i32_rotl', [new I32(2), new I32(0b1010)]);
+  expect($ret[0]->value)->toBe(0b101000);
 
-test('i32_shl', function () {})->todo();
+  $ret = $module->execute('i32_rotl', [new I32(1), new I32(0b10101010101010101010101010101010)]);
+  expect($ret[0]->value)->toBe(0b01010101010101010101010101010101);
+})->with([
+  'module' => fn() => wat2module(<<<WAT
+    (module
+      (func (export "i32_rotl") (param i32) (param i32) (result i32)
+        (i32.rotl (local.get 0) (local.get 1))
+      )
+    )
+    WAT)
+]);
 
-test('i32_shr_s', function () {})->todo();
+test('i32_rotr', function (Module $module) {
+  $ret = $module->execute('i32_rotr', [new I32(1), new I32(0b1010)]);
+  expect($ret[0]->value)->toBe(0b101);
 
-test('i32_shr_u', function () {})->todo();
+  $ret = $module->execute('i32_rotr', [new I32(2), new I32(0b1010)]);
+  expect($ret[0]->value)->toBe(0b10000000000000000000000000000010);
+
+  $ret = $module->execute('i32_rotr', [new I32(1), new I32(0b10101010101010101010101010101010)]);
+  expect($ret[0]->value)->toBe(0b01010101010101010101010101010101);
+})->with([
+  'module' => fn() => wat2module(<<<WAT
+    (module
+      (func (export "i32_rotr") (param i32) (param i32) (result i32)
+        (i32.rotr (local.get 0) (local.get 1))
+      )
+    )
+    WAT)
+]);
+
+test('i32_shl', function (Module $module) {
+  $ret = $module->execute('i32_shl', [new I32(1), new I32(0b1010)]);
+  expect($ret[0]->value)->toBe(0b10100);
+
+  $ret = $module->execute('i32_shl', [new I32(2), new I32(0b1010)]);
+  expect($ret[0]->value)->toBe(0b101000);
+
+  $ret = $module->execute('i32_shl', [new I32(1), new I32(0b10101010101010101010101010101010)]);
+  expect($ret[0]->value)->toBe(0b01010101010101010101010101010100);
+})->with([
+  'module' => fn() => wat2module(<<<WAT
+    (module
+      (func (export "i32_shl") (param i32) (param i32) (result i32)
+        (i32.shl (local.get 0) (local.get 1))
+      )
+    )
+    WAT)
+]);
+
+test('i32_shr_s', function (Module $module) {
+  $ret = $module->execute('i32_shr_s', [new I32(1), new I32(0b1010)]);
+  expect($ret[0]->value)->toBe(0b101);
+
+  $ret = $module->execute('i32_shr_s', [new I32(2), new I32(0b1010)]);
+  expect($ret[0]->value)->toBe(0b10);
+
+  $ret = $module->execute('i32_shr_s', [new I32(1), new I32(0b10101010101010101010101010101010)]);
+  expect($ret[0]->value)->toBe(0b11010101010101010101010101010101);
+})->with([
+  'module' => fn() => wat2module(<<<WAT
+    (module
+      (func (export "i32_shr_s") (param i32) (param i32) (result i32)
+        (i32.shr_s (local.get 0) (local.get 1))
+      )
+    )
+    WAT)
+]);
+
+test('i32_shr_u', function (Module $module) {
+  $ret = $module->execute('i32_shr_u', [new I32(1), new I32(0b1010)]);
+  expect($ret[0]->value)->toBe(0b101);
+
+  $ret = $module->execute('i32_shr_u', [new I32(2), new I32(0b1010)]);
+  expect($ret[0]->value)->toBe(0b10);
+
+  $ret = $module->execute('i32_shr_u', [new I32(1), new I32(0b10101010101010101010101010101010)]);
+  expect($ret[0]->value)->toBe(0b01010101010101010101010101010101);
+})->with([
+  'module' => fn() => wat2module(<<<WAT
+    (module
+      (func (export "i32_shr_u") (param i32) (param i32) (result i32)
+        (i32.shr_u (local.get 0) (local.get 1))
+      )
+    )
+    WAT)
+]);
 
 test('i32_store', function (Module $module) {
   $module->execute('i32_store', [new I32(42), new I32(43)]);

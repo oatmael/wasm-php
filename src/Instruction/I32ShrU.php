@@ -4,6 +4,7 @@ namespace Oatmael\WasmPhp\Instruction;
 
 use Exception;
 use Oatmael\WasmPhp\Execution\Store;
+use Oatmael\WasmPhp\Type\I32;
 
 #[Opcode(StandardOpcode::i32_shr_u)]
 class I32ShrU implements InstructionInterface
@@ -15,6 +16,22 @@ class I32ShrU implements InstructionInterface
 
   public function execute(array &$stack, array &$call_stack, Store $store)
   {
-    throw new Exception('Not implemented: i32.shr_u opcode');
+    $target = array_pop($stack);
+    $count = array_pop($stack);
+
+    if (!$target instanceof I32 || !$count instanceof I32) {
+      throw new Exception('Invalid operand types for i32.shr_s');
+    }
+
+    $value = $target->value & 0xFFFFFFFF;
+    $count = $count->value & 0x1F;
+
+    if ($count === 0) {
+      array_push($stack, $target);
+      return;
+    }
+
+    $value = $value >> $count;
+    array_push($stack, new I32($value));
   }
 }
