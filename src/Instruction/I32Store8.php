@@ -26,7 +26,7 @@ class I32Store8 implements InstructionInterface
     $value = array_pop($stack);
     $addr = array_pop($stack);
 
-    $at = $addr->value + $this->offset;
+    $at = $addr->toUnsigned()->value + $this->offset;
 
     $memory = $store->memory[0]; // Only 1 memory is valid for v1
     array_splice($memory->data, $at, 1, $value->getValue() & 0xFF);

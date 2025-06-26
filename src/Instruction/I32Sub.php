@@ -15,14 +15,14 @@ class I32Sub implements InstructionInterface {
 
     public function execute(array &$stack, array &$call_stack, Store $store)
     {
-        $left = array_pop($stack);
         $right = array_pop($stack);
+        $left = array_pop($stack);
 
         if (!($left instanceof I32) || !($right instanceof I32)) {
             throw new Exception('Invalid stack params for i32.sub opcode');
         }
 
-        array_push($stack, new I32($left->value - $right->value));
+        array_push($stack, new I32($left->getValue() - $right->getValue()));
     }
 
 }

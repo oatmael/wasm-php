@@ -19,7 +19,7 @@ class I32ReinterpretF32 implements InstructionInterface {
             throw new Exception('Invalid stack params for i32.reinterpret_f32 opcode');
         }
 
-        $reinterpret = pack('g', $target->value);
+        $reinterpret = pack('g', $target->getValue());
         $reinterpret = unpack('V', $reinterpret)[1];
         array_push($stack, new I32($reinterpret));
     }

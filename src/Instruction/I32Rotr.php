@@ -20,8 +20,8 @@ public static function fromInput(string $input, int &$offset): InstructionInterf
             throw new Exception('Invalid operand types for i32.rotr');
         }
 
-        $value = $target->value & 0xFFFFFFFF;
-        $count = $count->value & 0x1F;
+        $value = $target->getValue() & 0xFFFFFFFF;
+        $count = $count->getValue() & 0x1F;
 
         if ($count === 0) {
             array_push($stack, $target);

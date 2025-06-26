@@ -17,7 +17,7 @@ class I32Eqz implements InstructionInterface {
         if (!($test instanceof I32)) {
             throw new Exception('Invalid stack parameter for i32.eqz opcode');
         }
-        
-        array_push($stack, new I32($test->value === 0 ? 1 : 0));
+
+        array_push($stack, new I32($test->getValue() === 0 ? 1 : 0));
     }
 }

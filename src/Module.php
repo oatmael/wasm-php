@@ -3,6 +3,7 @@
 namespace Oatmael\WasmPhp;
 
 use Exception;
+use Oatmael\WasmPhp\Exception\CallStackExceededException;
 use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Execution\Frame;
 use Oatmael\WasmPhp\Type\Export;
@@ -51,7 +52,7 @@ class Module {
         );
     }
 
-    public const MAX_ITERATIONS = 1_000_000;
+    public const MAX_CALL_STACK = 10_000;
 
     public function setImport(string $module, string $field, callable $func): self {
         $this->store->setImport($module, $field, $func);
@@ -132,11 +133,15 @@ class Module {
     protected function executeFrame()
     {
         $iters = 0;
-        while ($iters < self::MAX_ITERATIONS) {
+        while (true) {
             /** @var Frame|null $frame */
             $frame = end($this->call_stack);
             if (!$frame) {
                 break;
+            }
+
+            if (count($this->call_stack) > self::MAX_CALL_STACK) {
+                throw new CallStackExceededException('Call stack size of ' . self::MAX_CALL_STACK . ' exceeded');
             }
 
             $frame->program_counter += 1;

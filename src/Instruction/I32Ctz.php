@@ -21,7 +21,7 @@ class I32Ctz implements InstructionInterface
             throw new Exception('Invalid stack parameter for i32.ctz opcode');
         }
 
-        $x = $test->value;
+        $x = $test->getValue();
         if ($x === 0) {
             array_push($stack, new I32(32));
             return;
@@ -43,7 +43,7 @@ class I32Ctz implements InstructionInterface
             $n = $n + 2;
             $x = $x >> 2;
         }
-        
+
         array_push($stack, new I32($n - ($x & 1)));
     }
 }

@@ -23,7 +23,7 @@ class IIf implements InstructionInterface {
     public function execute(array &$stack, array &$call_stack, Store $store) {
         /** @var Frame $frame */
         $frame = end($call_stack);
-        
+
         $break_target = null;
         $else_block = null;
         $block_count = 1;
@@ -48,15 +48,15 @@ class IIf implements InstructionInterface {
                 }
             }
         }
-        
+
         $block_type = ValueType::tryFrom($this->block_type);
         if (!$block_type) {
-        if ($block_type >= count($store->imports)) {
-            $block_type = $store->types[$store->functions[$block_type - count($store->imports)]];
-        } else {
-            $import = $store->imports[$block_type];
-            $block_type = $store->types[$import->idx];
-        }
+            if ($block_type >= count($store->imports)) {
+                $block_type = $store->types[$store->functions[$block_type - count($store->imports)]];
+            } else {
+                $import = $store->imports[$block_type];
+                $block_type = $store->types[$import->idx];
+            }
         } else {
             $block_type = new Func(
                 params: [],
@@ -73,7 +73,7 @@ class IIf implements InstructionInterface {
             $frame->program_counter = $else_block;
         } else if ($else_block === null && !$condition->value) {
             $frame->program_counter = $break_target;
-        } else {     
+        } else {
             array_push($frame->control_stack, new ControlStackEntry(
                 break_target: $break_target,
                 return_type: $block_type,

@@ -26,7 +26,7 @@ class I32Clz implements InstructionInterface
       throw new Exception('Invalid stack params for i32.clz opcode');
     }
 
-    $x = $test->value;
+    $x = $test->getValue();
     if ($x === 0) {
       array_push($stack, new I32(32));
     } else {

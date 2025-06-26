@@ -19,7 +19,7 @@ class I32Extend16S implements InstructionInterface {
             throw new Exception('Invalid operand types for i32.extend16_s');
         }
 
-        $value = $target->value & 0xFFFF;
+        $value = $target->getValue() & 0xFFFF;
 
         if ($value & 0x8000) {
             $value = $value | ((-1 << 16) & 0xFFFFFFFF);

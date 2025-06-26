@@ -18,7 +18,7 @@ class I32Popcnt implements InstructionInterface {
             throw new Exception('Invalid stack params for i32.popcnt opcode');
         }
 
-        $n = $test->value;
+        $n = $test->getValue();
         $n = ($n & 0x49249249) + (($n >> 1) & 0x49249249) + (($n >> 2) & 0x49249249);
         $n = ($n & 0xC30C30C3) + (($n >> 3) & 0x030C30C3);
 

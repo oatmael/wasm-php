@@ -78,16 +78,16 @@ test('i32_ctz', function (Module $module) {
 ]);
 
 test('i32_div_s', function (Module $module) {
-  $ret = $module->execute('i32_div_s', [new I32(6), new I32(42)]);
+  $ret = $module->execute('i32_div_s', [new I32(42), new I32(6)]);
   expect($ret[0]->getValue())->toBe(7);
 
-  $ret = $module->execute('i32_div_s', [new I32(-6), new I32(-42)]);
+  $ret = $module->execute('i32_div_s', [new I32(-42), new I32(-6)]);
   expect($ret[0]->getValue())->toBe(7);
 
-  $ret = $module->execute('i32_div_s', [new I32(6), new I32(-42)]);
+  $ret = $module->execute('i32_div_s', [new I32(-42), new I32(6)]);
   expect($ret[0]->getValue())->toBe(-7);
 
-  $ret = $module->execute('i32_div_s', [new I32(-6), new I32(42)]);
+  $ret = $module->execute('i32_div_s', [new I32(42), new I32(-6)]);
   expect($ret[0]->getValue())->toBe(-7);
 })->with([
   'module' => fn() => wat2module(<<<WAT
@@ -100,16 +100,16 @@ test('i32_div_s', function (Module $module) {
 ]);
 
 test('i32_div_u', function (Module $module) {
-  $ret = $module->execute('i32_div_u', [new I32(6), new I32(42)]);
+  $ret = $module->execute('i32_div_u', [new I32(42), new I32(6)]);
   expect($ret[0]->getValue())->toBe(7);
 
-  $ret = $module->execute('i32_div_u', [new I32(-6), new I32(-42)]);
+  $ret = $module->execute('i32_div_u', [new I32(-42), new I32(-6)]);
   expect($ret[0]->getValue())->toBe(0);
 
-  $ret = $module->execute('i32_div_u', [new I32(6), new I32(-42)]);
+  $ret = $module->execute('i32_div_u', [new I32(-42), new I32(6)]);
   expect($ret[0]->getValue())->toBe(715827875);
 
-  $ret = $module->execute('i32_div_u', [new I32(-6), new I32(42)]);
+  $ret = $module->execute('i32_div_u', [new I32(42), new I32(-6)]);
   expect($ret[0]->getValue())->toBe(0);
 })->with([
   'module' => fn() => wat2module(<<<WAT
@@ -189,13 +189,13 @@ test('i32_ge_s', function (Module $module) {
   $ret = $module->execute('i32_ge_s', [new I32(42), new I32(42)]);
   expect($ret[0]->getValue())->toBe(1);
 
-  $ret = $module->execute('i32_ge_s', [new I32(42), new I32(43)]);
-  expect($ret[0]->getValue())->toBe(1);
-
-  $ret = $module->execute('i32_ge_s', [new I32(-43), new I32(42)]);
+  $ret = $module->execute('i32_ge_s', [new I32(43), new I32(42)]);
   expect($ret[0]->getValue())->toBe(1);
 
   $ret = $module->execute('i32_ge_s', [new I32(42), new I32(-43)]);
+  expect($ret[0]->getValue())->toBe(1);
+
+  $ret = $module->execute('i32_ge_s', [new I32(-43), new I32(42)]);
   expect($ret[0]->getValue())->toBe(0);
 })->with([
   'module' => fn() => wat2module(<<<WAT
@@ -211,13 +211,13 @@ test('i32_ge_u', function (Module $module) {
   $ret = $module->execute('i32_ge_u', [new I32(42), new I32(42)]);
   expect($ret[0]->getValue())->toBe(1);
 
-  $ret = $module->execute('i32_ge_u', [new I32(42), new I32(43)]);
+  $ret = $module->execute('i32_ge_u', [new I32(43), new I32(42)]);
   expect($ret[0]->getValue())->toBe(1);
 
-  $ret = $module->execute('i32_ge_u', [new I32(-43), new I32(42)]);
+  $ret = $module->execute('i32_ge_u', [new I32(42), new I32(-43)]);
   expect($ret[0]->getValue())->toBe(0);
 
-  $ret = $module->execute('i32_ge_u', [new I32(42), new I32(-43)]);
+  $ret = $module->execute('i32_ge_u', [new I32(-43), new I32(42)]);
   expect($ret[0]->getValue())->toBe(1);
 })->with([
   'module' => fn() => wat2module(<<<WAT
@@ -233,13 +233,13 @@ test('i32_gt_s', function (Module $module) {
   $ret = $module->execute('i32_gt_s', [new I32(42), new I32(42)]);
   expect($ret[0]->getValue())->toBe(0);
 
-  $ret = $module->execute('i32_gt_s', [new I32(42), new I32(43)]);
-  expect($ret[0]->getValue())->toBe(1);
-
-  $ret = $module->execute('i32_gt_s', [new I32(-43), new I32(42)]);
+  $ret = $module->execute('i32_gt_s', [new I32(43), new I32(42)]);
   expect($ret[0]->getValue())->toBe(1);
 
   $ret = $module->execute('i32_gt_s', [new I32(42), new I32(-43)]);
+  expect($ret[0]->getValue())->toBe(1);
+
+  $ret = $module->execute('i32_gt_s', [new I32(-43), new I32(42)]);
   expect($ret[0]->getValue())->toBe(0);
 })->with([
   'module' => fn() => wat2module(<<<WAT
@@ -255,13 +255,13 @@ test('i32_gt_u', function (Module $module) {
   $ret = $module->execute('i32_gt_u', [new I32(42), new I32(42)]);
   expect($ret[0]->getValue())->toBe(0);
 
-  $ret = $module->execute('i32_gt_u', [new I32(42), new I32(43)]);
+  $ret = $module->execute('i32_gt_u', [new I32(43), new I32(42)]);
   expect($ret[0]->getValue())->toBe(1);
 
-  $ret = $module->execute('i32_gt_u', [new I32(-43), new I32(42)]);
+  $ret = $module->execute('i32_gt_u', [new I32(42), new I32(-43)]);
   expect($ret[0]->getValue())->toBe(0);
 
-  $ret = $module->execute('i32_gt_u', [new I32(42), new I32(-43)]);
+  $ret = $module->execute('i32_gt_u', [new I32(-43), new I32(42)]);
   expect($ret[0]->getValue())->toBe(1);
 })->with([
   'module' => fn() => wat2module(<<<WAT
@@ -277,13 +277,13 @@ test('i32_le_s', function (Module $module) {
   $ret = $module->execute('i32_le_s', [new I32(42), new I32(42)]);
   expect($ret[0]->getValue())->toBe(1);
 
-  $ret = $module->execute('i32_le_s', [new I32(42), new I32(43)]);
-  expect($ret[0]->getValue())->toBe(0);
-
-  $ret = $module->execute('i32_le_s', [new I32(-43), new I32(42)]);
+  $ret = $module->execute('i32_le_s', [new I32(43), new I32(42)]);
   expect($ret[0]->getValue())->toBe(0);
 
   $ret = $module->execute('i32_le_s', [new I32(42), new I32(-43)]);
+  expect($ret[0]->getValue())->toBe(0);
+
+  $ret = $module->execute('i32_le_s', [new I32(-43), new I32(42)]);
   expect($ret[0]->getValue())->toBe(1);
 })->with([
   'module' => fn() => wat2module(<<<WAT
@@ -299,13 +299,13 @@ test('i32_le_u', function (Module $module) {
   $ret = $module->execute('i32_le_u', [new I32(42), new I32(42)]);
   expect($ret[0]->getValue())->toBe(1);
 
-  $ret = $module->execute('i32_le_u', [new I32(42), new I32(43)]);
+  $ret = $module->execute('i32_le_u', [new I32(43), new I32(42)]);
   expect($ret[0]->getValue())->toBe(0);
 
-  $ret = $module->execute('i32_le_u', [new I32(-43), new I32(42)]);
+  $ret = $module->execute('i32_le_u', [new I32(42), new I32(-43)]);
   expect($ret[0]->getValue())->toBe(1);
 
-  $ret = $module->execute('i32_le_u', [new I32(42), new I32(-43)]);
+  $ret = $module->execute('i32_le_u', [new I32(-43), new I32(42)]);
   expect($ret[0]->getValue())->toBe(0);
 })->with([
   'module' => fn() => wat2module(<<<WAT
@@ -408,13 +408,13 @@ test('i32_lt_s', function (Module $module) {
   $ret = $module->execute('i32_lt_s', [new I32(42), new I32(42)]);
   expect($ret[0]->getValue())->toBe(0);
 
-  $ret = $module->execute('i32_lt_s', [new I32(42), new I32(43)]);
-  expect($ret[0]->getValue())->toBe(0);
-
-  $ret = $module->execute('i32_lt_s', [new I32(-43), new I32(42)]);
+  $ret = $module->execute('i32_lt_s', [new I32(43), new I32(42)]);
   expect($ret[0]->getValue())->toBe(0);
 
   $ret = $module->execute('i32_lt_s', [new I32(42), new I32(-43)]);
+  expect($ret[0]->getValue())->toBe(0);
+
+  $ret = $module->execute('i32_lt_s', [new I32(-43), new I32(42)]);
   expect($ret[0]->getValue())->toBe(1);
 })->with([
   'module' => fn() => wat2module(<<<WAT
@@ -430,13 +430,13 @@ test('i32_lt_u', function (Module $module) {
   $ret = $module->execute('i32_lt_u', [new I32(42), new I32(42)]);
   expect($ret[0]->getValue())->toBe(0);
 
-  $ret = $module->execute('i32_lt_u', [new I32(42), new I32(43)]);
+  $ret = $module->execute('i32_lt_u', [new I32(43), new I32(42)]);
   expect($ret[0]->getValue())->toBe(0);
 
-  $ret = $module->execute('i32_lt_u', [new I32(-43), new I32(42)]);
+  $ret = $module->execute('i32_lt_u', [new I32(42), new I32(-43)]);
   expect($ret[0]->getValue())->toBe(1);
 
-  $ret = $module->execute('i32_lt_u', [new I32(42), new I32(-43)]);
+  $ret = $module->execute('i32_lt_u', [new I32(-43), new I32(42)]);
   expect($ret[0]->getValue())->toBe(0);
 })->with([
   'module' => fn() => wat2module(<<<WAT
@@ -517,16 +517,16 @@ test('i32_reinterpret_f32', function (Module $module) {
 ]);
 
 test('i32_rem_s', function (Module $module) {
-  $ret = $module->execute('i32_rem_s', [new I32(42), new I32(6)]);
+  $ret = $module->execute('i32_rem_s', [new I32(6), new I32(42)]);
   expect($ret[0]->getValue())->toBe(6);
 
-  $ret = $module->execute('i32_rem_s', [new I32(-42), new I32(-6)]);
+  $ret = $module->execute('i32_rem_s', [new I32(-6), new I32(-42)]);
   expect($ret[0]->getValue())->toBe(-6);
 
-  $ret = $module->execute('i32_rem_s', [new I32(-42), new I32(6)]);
+  $ret = $module->execute('i32_rem_s', [new I32(6), new I32(-42)]);
   expect($ret[0]->getValue())->toBe(6);
 
-  $ret = $module->execute('i32_rem_s', [new I32(42), new I32(-6)]);
+  $ret = $module->execute('i32_rem_s', [new I32(-6), new I32(42)]);
   expect($ret[0]->getValue())->toBe(-6);
 })->with([
   'module' => fn() => wat2module(<<<WAT
@@ -539,16 +539,16 @@ test('i32_rem_s', function (Module $module) {
 ]);
 
 test('i32_rem_u', function (Module $module) {
-  $ret = $module->execute('i32_rem_u', [new I32(42), new I32(6)]);
+  $ret = $module->execute('i32_rem_u', [new I32(6), new I32(42)]);
   expect($ret[0]->getValue())->toBe(6);
 
-  $ret = $module->execute('i32_rem_u', [new I32(-42), new I32(-6)]);
+  $ret = $module->execute('i32_rem_u', [new I32(-6), new I32(-42)]);
   expect($ret[0]->getValue())->toBe(36);
 
-  $ret = $module->execute('i32_rem_u', [new I32(-42), new I32(6)]);
+  $ret = $module->execute('i32_rem_u', [new I32(6), new I32(-42)]);
   expect($ret[0]->getValue())->toBe(6);
 
-  $ret = $module->execute('i32_rem_u', [new I32(42), new I32(-6)]);
+  $ret = $module->execute('i32_rem_u', [new I32(-6), new I32(42)]);
   expect($ret[0]->getValue())->toBe(40);
 })->with([
   'module' => fn() => wat2module(<<<WAT
@@ -710,8 +710,7 @@ test('i32_store8', function (Module $module) {
 ]);
 
 test('i32_sub', function (Module $module) {
-  // The stack is reversed, so the first value is the second operand
-  $ret = $module->execute('i32_sub', [new I32(42), new I32(43)]);
+  $ret = $module->execute('i32_sub', [new I32(43), new I32(42)]);
   expect($ret[0]->getValue())->toBe(1);
 })->with([
   'module' => fn() => wat2module(<<<WAT

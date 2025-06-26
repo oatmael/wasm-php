@@ -28,7 +28,7 @@ class I32Load8S implements InstructionInterface
     $memory = $store->memory[0]; // Only 1 memory is valid for v1
     $addr = array_pop($stack);
 
-    $at = $addr->value + $this->offset;
+    $at = $addr->toUnsigned()->value + $this->offset;
 
     $value = unpack("c", pack("C", $memory->data[$at]))[1];
     $value &= 0xFF;

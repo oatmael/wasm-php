@@ -26,7 +26,7 @@ class I32Store16 implements InstructionInterface
     $value = array_pop($stack);
     $addr = array_pop($stack);
 
-    $at = $addr->value + $this->offset;
+    $at = $addr->toUnsigned()->value + $this->offset;
 
     $memory = $store->memory[0]; // Only 1 memory is valid for v1
     $values = array_values(unpack("C2", pack("v", $value->getValue())));

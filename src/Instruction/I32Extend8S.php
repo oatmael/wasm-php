@@ -19,7 +19,7 @@ class I32Extend8S implements InstructionInterface {
             throw new Exception('Invalid operand types for i32.extend8_s');
         }
 
-        $value = $target->value & 0xFF;
+        $value = $target->getValue() & 0xFF;
 
         if ($value & 0x80) {
             $value = $value | ((-1 << 8) & 0xFFFFFFFF);

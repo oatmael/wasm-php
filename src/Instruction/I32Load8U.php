@@ -29,7 +29,7 @@ class I32Load8U implements InstructionInterface
     $memory = $store->memory[0]; // Only 1 memory is valid for v1
     $addr = array_pop($stack);
 
-    $at = $addr->value + $this->offset;
+    $at = $addr->toUnsigned()->value + $this->offset;
     array_push($stack, new I32($memory->data[$at] & 0xFF));
   }
 }
