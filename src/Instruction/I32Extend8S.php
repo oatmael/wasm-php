@@ -22,7 +22,7 @@ class I32Extend8S implements InstructionInterface {
         $value = $target->getValue() & 0xFF;
 
         if ($value & 0x80) {
-            $value = $value | ((-1 << 8) & 0xFFFFFFFF);
+            $value |= (-1 << 8);
         }
 
         array_push($stack, new I32($value));

@@ -18,7 +18,7 @@ class I32 implements ValueInterface {
     public function getValue()
     {
         if ($this->value & 0x80000000) {
-            return $this->value | ((-1 << (PHP_INT_SIZE * 8)));
+            return $this->value | (-1 << 32);
         }
 
         return $this->value & 0xFFFFFFFF;

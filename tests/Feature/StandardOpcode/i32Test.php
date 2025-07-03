@@ -155,7 +155,7 @@ test('i32_eqz', function (Module $module) {
 
 test('i32_extend16_s', function (Module $module) {
   $ret = $module->execute('i32_extend16_s', [new I32(0b1010101010101010)]);
-  expect($ret[0]->getValue())->toBe(0b11111111111111111010101010101010);
+  expect($ret[0]->getValue())->toBe(-21846); // TODO: have to specify the number in decimal, as PHP gets weird about the binary representation of negatives
 
   $ret = $module->execute('i32_extend16_s', [new I32(0b0101010101010101)]);
   expect($ret[0]->getValue())->toBe(0b0101010101010101);
@@ -171,7 +171,7 @@ test('i32_extend16_s', function (Module $module) {
 
 test('i32_extend8_s', function (Module $module) {
   $ret = $module->execute('i32_extend8_s', [new I32(0b10101010)]);
-  expect($ret[0]->getValue())->toBe(0b11111111111111111111111110101010);
+  expect($ret[0]->getValue())->toBe(-86); // TODO: have to specify the number in decimal, as PHP gets weird about the binary representation of negatives
 
   $ret = $module->execute('i32_extend8_s', [new I32(0b01010101)]);
   expect($ret[0]->getValue())->toBe(0b01010101);
@@ -334,7 +334,7 @@ test('i32_load', function (Module $module) {
 
 test('i32_load16_s', function (Module $module) {
   $ret = $module->execute('i32_load16_s', [new I32(0), new I32(0b10101010101010101010101010101010)]);
-  expect($ret[0]->getValue())->toBe(0b11111111111111111010101010101010);
+  expect($ret[0]->getValue())->toBe(-21846); // TODO: have to specify the number in decimal, as PHP gets weird about the binary representation of negatives
 
   $ret = $module->execute('i32_load16_s', [new I32(0), new I32(0b01010101010101010101010101010101)]);
   expect($ret[0]->getValue())->toBe(0b0101010101010101);
@@ -370,7 +370,7 @@ test('i32_load16_u', function (Module $module) {
 
 test('i32_load8_s', function (Module $module) {
   $ret = $module->execute('i32_load8_s', [new I32(0), new I32(0b10101010101010101010101010101010)]);
-  expect($ret[0]->getValue())->toBe(0b11111111111111111111111110101010);
+  expect($ret[0]->getValue())->toBe(-86); // TODO: have to specify the number in decimal, as PHP gets weird about the binary representation of negatives
 
   $ret = $module->execute('i32_load8_s', [new I32(0), new I32(0b01010101010101010101010101010101)]);
   expect($ret[0]->getValue())->toBe(0b01010101);
@@ -584,7 +584,7 @@ test('i32_rotr', function (Module $module) {
   expect($ret[0]->getValue())->toBe(0b101);
 
   $ret = $module->execute('i32_rotr', [new I32(2), new I32(0b1010)]);
-  expect($ret[0]->getValue())->toBe(0b10000000000000000000000000000010);
+  expect($ret[0]->getValue())->toBe(-2147483646); // TODO: have to specify the number in decimal, as PHP gets weird about the binary representation of negatives
 
   $ret = $module->execute('i32_rotr', [new I32(1), new I32(0b10101010101010101010101010101010)]);
   expect($ret[0]->getValue())->toBe(0b01010101010101010101010101010101);
@@ -625,7 +625,7 @@ test('i32_shr_s', function (Module $module) {
   expect($ret[0]->getValue())->toBe(0b10);
 
   $ret = $module->execute('i32_shr_s', [new I32(1), new I32(0b10101010101010101010101010101010)]);
-  expect($ret[0]->getValue())->toBe(0b11010101010101010101010101010101);
+  expect($ret[0]->getValue())->toBe(-715827883); // TODO: have to specify the number in decimal, as PHP gets weird about the binary representation of negatives
 })->with([
   'module' => fn() => wat2module(<<<WAT
     (module
@@ -798,7 +798,7 @@ test('i32_wrap_i64', function (Module $module) {
   $ret = $module->execute('i32_wrap_i64', [
     new I64(0b0111111111111111101010100101010111111111111111111010101001010101)
   ]);
-  expect($ret[0]->getValue())->toBe(0b11111111111111111010101001010101);
+  expect($ret[0]->getValue())->toBe(-21931); // TODO: have to specify the number in decimal, as PHP gets weird about the binary representation of negatives
 })->with([
   'module' => fn() => wat2module(<<<WAT
     (module

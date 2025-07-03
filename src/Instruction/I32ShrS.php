@@ -30,7 +30,7 @@ class I32ShrS implements InstructionInterface {
 
         $value = $value >> $count;
         if ($target->value & 0x80000000) {
-            $value = $value | ((-1 << (32 - $count)) & 0xFFFFFFFF);
+            $value = $value | (-1 << (32 - $count));
         }
 
         array_push($stack, new I32($value));

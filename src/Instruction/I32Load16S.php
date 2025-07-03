@@ -35,7 +35,7 @@ class I32Load16S implements InstructionInterface
 
     $value = $value & 0xFFFF;
     if ($value & 0x8000) {
-      $value = $value | ((-1 << 16) & 0xFFFFFFFF);
+      $value = $value | (-1 << 16);
     }
 
     array_push($stack, new I32($value));

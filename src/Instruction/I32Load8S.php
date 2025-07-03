@@ -33,7 +33,7 @@ class I32Load8S implements InstructionInterface
     $value = unpack("c", pack("C", $memory->data[$at]))[1];
     $value &= 0xFF;
     if ($value & 0x80) {
-      $value = $value | ((-1 << 8) & 0xFFFFFFFF);
+      $value = $value | (-1 << 8);
     }
 
     array_push($stack, new I32($value));

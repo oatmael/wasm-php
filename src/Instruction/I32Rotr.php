@@ -28,7 +28,7 @@ public static function fromInput(string $input, int &$offset): InstructionInterf
             return;
         }
 
-        $value = ($value >> $count) | (($value << (32 - $count)) & 0xFFFFFFFF);
+        $value = ($value >> $count) | ($value << (32 - $count));
 
         array_push($stack, new I32($value));
     }

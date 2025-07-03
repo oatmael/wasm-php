@@ -19,6 +19,6 @@ class I32WrapI64 implements InstructionInterface {
             throw new Exception('Invalid stack params for i32.wrap_i64 opcode');
         }
 
-        array_push($stack, new I32($value->getValue() & 0xFFFFFFFF));
+        array_push($stack, new I32($value->getValue()));
     }
 }
