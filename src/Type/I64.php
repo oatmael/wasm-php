@@ -23,4 +23,10 @@ class I64 implements ValueInterface {
     {
         return $this->value;
     }
+
+    public function toUnsigned(): self
+    {
+        // TODO: this isn't right, since PHP only has signed 64-bit integers, and will convert to a float on overflow.
+        return new self((int)($this->value >= 0 ? $this->value : (2 ** 64) + $this->value));
+    }
 }

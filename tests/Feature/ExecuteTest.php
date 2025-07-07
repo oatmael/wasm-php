@@ -100,9 +100,7 @@ test('start', function () {
 
     $util = new WasmReader();
     $module = $util->read($wasm);
-    $module->setImport('env', 'init', function () {
-        var_dump('This is the start function');
-    });
+    $module->setImport('env', 'init', function () {});
 
     $ret = $module->execute('addTwo', [new I32(4), new I32(26)]);
 
@@ -138,35 +136,13 @@ test('fibonacci', function (Module $module) {
         28657,
         46368,
         75025,
-        121393,
-        196418,
-        317811,
-        514229,
-        832040,
-        1346269,
-        2178309,
-        3524578,
-        5702887,
-        9227465,
-        14930352,
-        24157817,
-        39088169,
-        63245986,
-        102334155,
-        165580141,
-        267914296,
-        433494437,
-        701408733,
-        1134903170,
-        1836311903,
-        2971215073,
     ];
 
     $ret = $module->execute('fib', [new I32(1)]);
-    expect($ret[0]->value)->toBe($fib[1]);
+    expect($ret[0]->getValue())->toBe($fib[1]);
 
     $ret = $module->execute('fib', [new I32(10)]);
-    expect($ret[0]->value)->toBe($fib[10]);
+    expect($ret[0]->getValue())->toBe($fib[10]);
 
     // fib(25) is far enough into the sequence that the 24 repeating pattern comes into play, any further slows down the test suite considerably
     $ret = $module->execute('fib', [new I32(25)]);
@@ -246,11 +222,70 @@ test('fibonnaci_loop', function (Module $module) {
         701408733,
         1134903170,
         1836311903,
-        2971215073,
+        // At this point, fib(n) will experience overflows
+        -1323752223,
+        512559680,
+        -811192543,
+        -298632863,
+        -1109825406,
+        -1408458269,
+        1776683621,
+        368225352,
+        2144908973,
+        -1781832971,
+        363076002,
+        -1418756969,
+        -1055680967,
+        1820529360,
+        764848393,
+        -1709589543,
+        -944741150,
+        1640636603,
+        695895453,
+        -1958435240,
+        -1262539787,
+        1073992269,
+        -188547518,
+        885444751,
+        696897233,
+        1582341984,
+        -2015728079,
+        -433386095,
+        1845853122,
+        1412467027,
+        -1036647147,
+        375819880,
+        -660827267,
+        -285007387,
+        -945834654,
+        -1230842041,
+        2118290601,
+        887448560,
+        -1289228135,
+        -401779575,
+        -1691007710,
+        -2092787285,
+        511172301,
+        -1581614984,
+        -1070442683,
+        1642909629,
+        572466946,
+        -2079590721,
+        -1507123775,
+        708252800,
+        -798870975,
+        -90618175,
+        -889489150,
+        -980107325,
     ];
 
     $ret = $module->execute('fib', [new I32(47)]);
-    expect($ret[0]->value)->toBe($fib[47]);
+    expect($ret[0]->getValue())->toBe($fib[47]);
+
+    for ($i = 0; $i <= 100; $i++) {
+        $ret = $module->execute('fib', [new I32($i)]);
+        expect($ret[0]->getValue())->toBe($fib[$i]);
+    }
 })->with([
     'module' => fn() => wat2module(<<<WAT
     (module

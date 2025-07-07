@@ -609,7 +609,7 @@ class WasmReader {
 
     public static function readFloat32(string $input, int &$offset)
     {
-        $result = unpack('G', hex2bin(substr($input, $offset, 8)));
+        $result = unpack('g', hex2bin(substr($input, $offset, 8)));
         $offset += 8;
         return $result[1];
     }

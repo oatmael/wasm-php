@@ -4,6 +4,7 @@ namespace Oatmael\WasmPhp\Instruction;
 
 use Exception;
 use Oatmael\WasmPhp\Execution\Store;
+use Oatmael\WasmPhp\Type\F32;
 
 #[Opcode(StandardOpcode::f32_nearest)]
 class F32Nearest implements InstructionInterface {
@@ -12,6 +13,11 @@ class F32Nearest implements InstructionInterface {
     }
 
     public function execute(array &$stack, array &$call_stack, Store $store) {
-        throw new Exception('Not implemented: f32.nearest opcode');
+        $value = array_pop($stack);
+        if (!$value instanceof F32) {
+            throw new Exception('Invalid operand types for f32.nearest');
+        }
+
+        array_push($stack, new F32(round($value->getValue(), 0, PHP_ROUND_HALF_EVEN)));
     }
 }

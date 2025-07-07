@@ -4,6 +4,7 @@ namespace Oatmael\WasmPhp\Instruction;
 
 use Exception;
 use Oatmael\WasmPhp\Execution\Store;
+use Oatmael\WasmPhp\Type\F32;
 use Oatmael\WasmPhp\Util\WasmReader;
 
 #[Opcode(StandardOpcode::f32_const)]
@@ -21,6 +22,6 @@ class F32Const implements InstructionInterface
 
   public function execute(array &$stack, array &$call_stack, Store $store)
   {
-    throw new Exception('Not implemented: f32.const opcode');
+    array_push($stack, new F32($this->value));
   }
 }
