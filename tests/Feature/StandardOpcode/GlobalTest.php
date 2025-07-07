@@ -10,7 +10,7 @@ test('global_get', function (Module $module) {
   expect($ret[0]->value)->toBe(42);
 })
   ->with([
-    'globalGetModule' => fn() => wat2module(<<<WAT
+    'module' => fn() => wat2module(<<<WAT
     (module
       (global \$global (mut i32) (i32.const 42))
       (func (export "global_get") (result i32)
@@ -26,7 +26,7 @@ test('global_set', function (Module $module) {
 })
   ->depends('global_get')
   ->with([
-    'globalSetModule' => fn() => wat2module(<<<WAT
+    'module' => fn() => wat2module(<<<WAT
     (module
       (global \$global (mut i32) (i32.const 42))
       (func (export "global_set") (param i32) (result i32)

@@ -21,6 +21,12 @@ class LocalTee implements InstructionInterface
 
   public function execute(array &$stack, array &$call_stack, Store $store)
   {
-    throw new Exception('Not implemented: local.tee opcode');
+    $value = array_pop($stack);
+    if (!$value) {
+        throw new Exception('No value on stack for local.set');
+    }
+    end($call_stack)->locals[$this->local_idx] = $value;
+
+    array_push($stack, $value);
   }
 }

@@ -47,7 +47,7 @@ test('importAdd', function (Module $module) {
 
     expect($ret[0]->value)->toBe($right->value + $left->value);
 })->with([
-    'importAddModule' => fn() => wat2module(<<<WAT
+    'module' => fn() => wat2module(<<<WAT
         (module
             (func \$add (import "env" "add") (param i32) (result i32))
             (func (export "call_add") (param i32) (result i32)
