@@ -2,8 +2,8 @@
 
 namespace Oatmael\WasmPhp\Instruction;
 
-use Exception;
 use Oatmael\WasmPhp\Execution\Store;
+use Oatmael\WasmPhp\Type\I64;
 use Oatmael\WasmPhp\Util\WasmReader;
 
 class I64Const implements InstructionInterface {
@@ -17,6 +17,6 @@ class I64Const implements InstructionInterface {
     }
 
     public function execute(array &$stack, array &$call_stack, Store $store) {
-      throw new Exception('Not implemented: i64.const opcode');
+        array_push($stack, new I64($this->value));
     }
 }

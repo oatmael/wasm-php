@@ -8,10 +8,6 @@ use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Execution\Frame;
 use Oatmael\WasmPhp\Type\Export;
 use Oatmael\WasmPhp\Instruction\InstructionInterface;
-use Oatmael\WasmPhp\Type\F32;
-use Oatmael\WasmPhp\Type\F64;
-use Oatmael\WasmPhp\Type\I32;
-use Oatmael\WasmPhp\Type\I64;
 use Oatmael\WasmPhp\Type\Memory;
 use Oatmael\WasmPhp\Util\ExportType;
 use Oatmael\WasmPhp\Util\ValueType;
@@ -88,13 +84,7 @@ class Module {
         $function = $this->store->getFunctionType($export->idx);
         $arity = count($function->results);
 
-        $expected = array_map(static fn (ValueType $param) => match ($param) {
-            ValueType::I32 => I32::class,
-            ValueType::I64 => I64::class,
-            ValueType::F32 => F32::class,
-            ValueType::F64 => F64::class,
-            default => throw new Exception('Unsupported export parameter type: ' . $param->name),
-        }, $function->params);
+        $expected = array_map(static fn (ValueType $param) => $param->valueClass(), $function->params);
 
         $args = array_values($args);
         $bad_signature = count($expected) !== count($args) ||

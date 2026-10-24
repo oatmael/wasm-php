@@ -2,13 +2,26 @@
 
 namespace Tests\Feature\StandardOpcode;
 
+use Oatmael\WasmPhp\Module;
+
 test('i64_add', function () {})->todo();
 
 test('i64_and', function () {})->todo();
 
 test('i64_clz', function () {})->todo();
 
-test('i64_const', function () {})->todo();
+test('i64_const', function (Module $module) {
+  $ret = $module->execute('i64_const', []);
+  expect($ret[0]->getValue())->toBe(PHP_INT_MIN);
+})->with([
+  'module' => fn() => wat2module(<<<WAT
+    (module
+      (func (export "i64_const") (result i64)
+        (i64.const -9223372036854775808)
+      )
+    )
+    WAT)
+]);
 
 test('i64_ctz', function () {})->todo();
 

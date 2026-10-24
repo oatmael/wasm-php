@@ -2,12 +2,15 @@
 
 namespace Oatmael\WasmPhp\Execution;
 
+use Closure;
 use Exception;
+use Oatmael\WasmPhp\Import\HostFunction;
 use Oatmael\WasmPhp\Type\F32;
 use Oatmael\WasmPhp\Type\F64;
 use Oatmael\WasmPhp\Type\Func;
 use Oatmael\WasmPhp\Type\I32;
 use Oatmael\WasmPhp\Type\I64;
+use Oatmael\WasmPhp\Type\Import;
 use Oatmael\WasmPhp\Type\Code;
 use Oatmael\WasmPhp\Type\Data;
 use Oatmael\WasmPhp\Type\Local;
@@ -15,7 +18,7 @@ use Oatmael\WasmPhp\Type\Memory;
 use Oatmael\WasmPhp\Util\ValueType;
 
 class Store {
-    protected array $import_callables;
+    protected array $host_functions;
     protected bool $initialised;
 
     public function __construct(
@@ -31,7 +34,7 @@ class Store {
         public array $elements,
     )
     {
-        $this->import_callables = [];
+        $this->host_functions = [];
         $this->initialised = false;
     }
 
@@ -61,7 +64,10 @@ class Store {
     }
 
     public function setImport(string $module, string $field, callable $func): self {
-        $this->import_callables[$module][$field] = $func;
+        $import_idx = array_find_key($this->imports, static fn (Import $import) => $import->module === $module && $import->field === $field)
+            ?? throw new Exception("Module does not import $module.$field");
+
+        $this->host_functions[$import_idx] = new HostFunction(Closure::fromCallable($func), $this->getFunctionType($import_idx), "$module.$field");
         return $this;
     }
 
@@ -93,16 +99,9 @@ class Store {
 
         if ($function_idx < count($this->imports)) {
             $import = $this->imports[$function_idx];
-            $import_func = $this->import_callables[$import->module][$import->field] ?? null;
-            if (!$import_func) {
-                throw new Exception('Undefined import ' . $import->module . ':' . $import->field);
-            }
+            $host_function = $this->host_functions[$function_idx] ?? throw new Exception('Undefined import ' . $import->module . '.' . $import->field);
 
-            // TODO: provide a nicer interface for the parameters exposed to the import function (maybe some sort of reflection inference?)
-            $ret = $import_func($stack, $call_stack, $this, ...$locals);
-            if ($ret) {
-                array_push($stack, ...(is_array($ret) ? $ret : [$ret]));
-            }
+            array_push($stack, ...$host_function->call($locals, $this));
             return;
         }
 

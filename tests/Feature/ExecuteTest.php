@@ -1,6 +1,5 @@
 <?php
 
-use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Module;
 use Oatmael\WasmPhp\Type\I32;
 
@@ -46,9 +45,7 @@ test('importAdd', function (Module $module) {
     $right = new I32(26);
 
     $ret = $module
-        ->setImport('env', 'add', function ($stack, $call_stack, Store $store, I32 $left) use ($right) {
-            return new I32($left->value + $right->value);
-        })
+        ->setImport('env', 'add', fn (int $left) => $left + $right->getValue())
         ->execute('call_add', [$left]);
 
     expect($ret[0]->value)->toBe($right->value + $left->value);

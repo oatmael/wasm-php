@@ -238,18 +238,16 @@ test('loop', function (Module $module) {
 ]);
 
 test('nop', function (Module $module) {
-  $module->setImport('env', 'test_pc', fn($stack, $call_stack) => expect(end($call_stack)->program_counter)->toBe(4));
-  $module->execute('nop', []);
+  $ret = $module->execute('nop', [new I32(7)]);
+  expect($ret[0]->getValue())->toBe(7);
 })->with([
   'module' => fn() => wat2module(<<<WAT
     (module
-      (import "env" "test_pc" (func \$test_pc))
-      (func (export "nop") (result)
+      (func (export "nop") (param i32) (result i32)
+        nop
+        local.get 0
         nop
         nop
-        nop
-        nop
-        call \$test_pc
       )
     )
     WAT)

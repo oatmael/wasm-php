@@ -2,6 +2,8 @@
 
 namespace Oatmael\WasmPhp\Type;
 
+use Exception;
+
 class Memory {
 
     public const PAGE_SIZE = 65536;
@@ -18,6 +20,15 @@ class Memory {
     public function init()
     {
         $this->data = array_fill(0, $this->min * self::PAGE_SIZE, 0);
+    }
+
+    public function read(int $address, int $length): string
+    {
+        if ($address < 0 || $length < 0 || $address + $length > count($this->data)) {
+            throw new Exception("Out of bounds memory access reading $length bytes at address $address");
+        }
+
+        return pack('C*', ...array_slice($this->data, $address, $length));
     }
 
     public function grow(int $pages): int
