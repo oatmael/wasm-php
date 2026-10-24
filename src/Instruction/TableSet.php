@@ -6,7 +6,6 @@ use Exception;
 use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Util\WasmReader;
 
-#[Opcode(StandardOpcode::table_set)]
 class TableSet implements InstructionInterface
 {
   public function __construct(

@@ -5,11 +5,9 @@ namespace Oatmael\WasmPhp\Instruction;
 use Exception;
 use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Type\I32;
-use Oatmael\WasmPhp\Type\I64;
 use Oatmael\WasmPhp\Type\Memory;
 use Oatmael\WasmPhp\Util\WasmReader;
 
-#[Opcode(StandardOpcode::memory_size)]
 class MemorySize implements InstructionInterface {
     public function __construct(
         public readonly int $reserved
@@ -25,7 +23,6 @@ class MemorySize implements InstructionInterface {
             throw new Exception('memory.size only supports single memory');
         }
 
-        $ptr_class = PHP_INT_SIZE === 8 ? I64::class : I32::class;
-        array_push($stack, new $ptr_class(count($store->memory[$this->reserved]->data) / Memory::PAGE_SIZE));
+        array_push($stack, new I32(intdiv(count($store->memory[$this->reserved]->data), Memory::PAGE_SIZE)));
     }
 }

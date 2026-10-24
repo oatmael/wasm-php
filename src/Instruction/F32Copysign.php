@@ -7,7 +7,6 @@ use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Type\F32;
 use Oatmael\WasmPhp\Type\I32;
 
-#[Opcode(StandardOpcode::f32_copysign)]
 class F32Copysign implements InstructionInterface {
     public static function fromInput(string $input, int &$offset): InstructionInterface {
         return new self();

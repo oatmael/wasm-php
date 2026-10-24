@@ -6,7 +6,6 @@ use Exception;
 use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Util\WasmReader;
 
-#[Opcode(StandardOpcode::ref_func)]
 class RefFunc implements InstructionInterface {
     public function __construct(public readonly int $func_idx) {}
 

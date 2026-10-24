@@ -7,7 +7,6 @@ use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Type\GlobalImmutable;
 use Oatmael\WasmPhp\Util\WasmReader;
 
-#[Opcode(StandardOpcode::global_set)]
 class GlobalSet implements InstructionInterface {
     public function __construct(
         public readonly int $global_idx,

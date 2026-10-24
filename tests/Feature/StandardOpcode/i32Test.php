@@ -561,13 +561,13 @@ test('i32_rem_u', function (Module $module) {
 ]);
 
 test('i32_rotl', function (Module $module) {
-  $ret = $module->execute('i32_rotl', [new I32(1), new I32(0b1010)]);
+  $ret = $module->execute('i32_rotl', [new I32(0b1010), new I32(1)]);
   expect($ret[0]->getValue())->toBe(0b10100);
 
-  $ret = $module->execute('i32_rotl', [new I32(2), new I32(0b1010)]);
+  $ret = $module->execute('i32_rotl', [new I32(0b1010), new I32(2)]);
   expect($ret[0]->getValue())->toBe(0b101000);
 
-  $ret = $module->execute('i32_rotl', [new I32(1), new I32(0b10101010101010101010101010101010)]);
+  $ret = $module->execute('i32_rotl', [new I32(0b10101010101010101010101010101010), new I32(1)]);
   expect($ret[0]->getValue())->toBe(0b01010101010101010101010101010101);
 })->with([
   'module' => fn() => wat2module(<<<WAT
@@ -580,13 +580,13 @@ test('i32_rotl', function (Module $module) {
 ]);
 
 test('i32_rotr', function (Module $module) {
-  $ret = $module->execute('i32_rotr', [new I32(1), new I32(0b1010)]);
+  $ret = $module->execute('i32_rotr', [new I32(0b1010), new I32(1)]);
   expect($ret[0]->getValue())->toBe(0b101);
 
-  $ret = $module->execute('i32_rotr', [new I32(2), new I32(0b1010)]);
+  $ret = $module->execute('i32_rotr', [new I32(0b1010), new I32(2)]);
   expect($ret[0]->getValue())->toBe(-2147483646); // TODO: have to specify the number in decimal, as PHP gets weird about the binary representation of negatives
 
-  $ret = $module->execute('i32_rotr', [new I32(1), new I32(0b10101010101010101010101010101010)]);
+  $ret = $module->execute('i32_rotr', [new I32(0b10101010101010101010101010101010), new I32(1)]);
   expect($ret[0]->getValue())->toBe(0b01010101010101010101010101010101);
 })->with([
   'module' => fn() => wat2module(<<<WAT
@@ -599,13 +599,13 @@ test('i32_rotr', function (Module $module) {
 ]);
 
 test('i32_shl', function (Module $module) {
-  $ret = $module->execute('i32_shl', [new I32(1), new I32(0b1010)]);
+  $ret = $module->execute('i32_shl', [new I32(0b1010), new I32(1)]);
   expect($ret[0]->getValue())->toBe(0b10100);
 
-  $ret = $module->execute('i32_shl', [new I32(2), new I32(0b1010)]);
+  $ret = $module->execute('i32_shl', [new I32(0b1010), new I32(2)]);
   expect($ret[0]->getValue())->toBe(0b101000);
 
-  $ret = $module->execute('i32_shl', [new I32(1), new I32(0b10101010101010101010101010101010)]);
+  $ret = $module->execute('i32_shl', [new I32(0b10101010101010101010101010101010), new I32(1)]);
   expect($ret[0]->getValue())->toBe(0b01010101010101010101010101010100);
 })->with([
   'module' => fn() => wat2module(<<<WAT
@@ -618,13 +618,13 @@ test('i32_shl', function (Module $module) {
 ]);
 
 test('i32_shr_s', function (Module $module) {
-  $ret = $module->execute('i32_shr_s', [new I32(1), new I32(0b1010)]);
+  $ret = $module->execute('i32_shr_s', [new I32(0b1010), new I32(1)]);
   expect($ret[0]->getValue())->toBe(0b101);
 
-  $ret = $module->execute('i32_shr_s', [new I32(2), new I32(0b1010)]);
+  $ret = $module->execute('i32_shr_s', [new I32(0b1010), new I32(2)]);
   expect($ret[0]->getValue())->toBe(0b10);
 
-  $ret = $module->execute('i32_shr_s', [new I32(1), new I32(0b10101010101010101010101010101010)]);
+  $ret = $module->execute('i32_shr_s', [new I32(0b10101010101010101010101010101010), new I32(1)]);
   expect($ret[0]->getValue())->toBe(-715827883); // TODO: have to specify the number in decimal, as PHP gets weird about the binary representation of negatives
 })->with([
   'module' => fn() => wat2module(<<<WAT
@@ -637,13 +637,13 @@ test('i32_shr_s', function (Module $module) {
 ]);
 
 test('i32_shr_u', function (Module $module) {
-  $ret = $module->execute('i32_shr_u', [new I32(1), new I32(0b1010)]);
+  $ret = $module->execute('i32_shr_u', [new I32(0b1010), new I32(1)]);
   expect($ret[0]->getValue())->toBe(0b101);
 
-  $ret = $module->execute('i32_shr_u', [new I32(2), new I32(0b1010)]);
+  $ret = $module->execute('i32_shr_u', [new I32(0b1010), new I32(2)]);
   expect($ret[0]->getValue())->toBe(0b10);
 
-  $ret = $module->execute('i32_shr_u', [new I32(1), new I32(0b10101010101010101010101010101010)]);
+  $ret = $module->execute('i32_shr_u', [new I32(0b10101010101010101010101010101010), new I32(1)]);
   expect($ret[0]->getValue())->toBe(0b01010101010101010101010101010101);
 })->with([
   'module' => fn() => wat2module(<<<WAT

@@ -6,7 +6,6 @@ use Exception;
 use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Type\F32;
 
-#[Opcode(StandardOpcode::f32_nearest)]
 class F32Nearest implements InstructionInterface {
     public static function fromInput(string $input, int &$offset): InstructionInterface {
         return new self();

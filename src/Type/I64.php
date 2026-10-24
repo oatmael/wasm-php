@@ -2,6 +2,7 @@
 
 namespace Oatmael\WasmPhp\Type;
 
+use Brick\Math\BigInteger;
 use Exception;
 
 class I64 implements ValueInterface {
@@ -24,9 +25,26 @@ class I64 implements ValueInterface {
         return $this->value;
     }
 
-    public function toUnsigned(): self
+    // PHP ints are signed 64-bit, so the unsigned view (0 to 2^64 - 1) needs arbitrary precision
+    public function toBigInteger(bool $unsigned = false): BigInteger
     {
-        // TODO: this isn't right, since PHP only has signed 64-bit integers, and will convert to a float on overflow.
-        return new self((int)($this->value >= 0 ? $this->value : (2 ** 64) + $this->value));
+        $value = BigInteger::of($this->value);
+        return $unsigned && $this->value < 0 ? $value->plus(self::modulus()) : $value;
+    }
+
+    // Wrap any integer into the i64 range (modulo 2^64), as wasm integer arithmetic does
+    public static function fromBigInteger(BigInteger $value): self
+    {
+        $value = $value->mod(self::modulus());
+        if ($value->isGreaterThan(PHP_INT_MAX)) {
+            $value = $value->minus(self::modulus());
+        }
+
+        return new self($value->toInt());
+    }
+
+    protected static function modulus(): BigInteger
+    {
+        return BigInteger::one()->shiftedLeft(64);
     }
 }

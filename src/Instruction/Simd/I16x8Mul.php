@@ -5,10 +5,7 @@ namespace Oatmael\WasmPhp\Instruction\Simd;
 use Exception;
 use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Instruction\InstructionInterface;
-use Oatmael\WasmPhp\Instruction\SimdOpcode;
-use Oatmael\WasmPhp\Instruction\Opcode;
 
-#[Opcode(SimdOpcode::i16x8_mul)]
 class I16x8Mul implements InstructionInterface {
     public static function fromInput(string $input, int &$offset): InstructionInterface {
         return new self();

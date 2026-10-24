@@ -5,10 +5,7 @@ namespace Oatmael\WasmPhp\Instruction\Simd;
 use Exception;
 use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Instruction\InstructionInterface;
-use Oatmael\WasmPhp\Instruction\Opcode;
-use Oatmael\WasmPhp\Instruction\SimdOpcode;
 
-#[Opcode(SimdOpcode::i16x8_sub_sat_s)]
 class I16x8SubSatS implements InstructionInterface
 {
   public static function fromInput(string $input, int &$offset): InstructionInterface

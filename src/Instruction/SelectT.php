@@ -6,7 +6,6 @@ use Exception;
 use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Util\WasmReader;
 
-#[Opcode(StandardOpcode::select_t)]
 class SelectT implements InstructionInterface {
     public function __construct(public readonly array $types) {}
 

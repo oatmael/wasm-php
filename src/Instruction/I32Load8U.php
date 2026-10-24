@@ -8,7 +8,6 @@ use Oatmael\WasmPhp\Type\I32;
 use Oatmael\WasmPhp\Type\Memory;
 use Oatmael\WasmPhp\Util\WasmReader;
 
-#[Opcode(StandardOpcode::i32_load8_u)]
 class I32Load8U implements InstructionInterface
 {
   public function __construct(

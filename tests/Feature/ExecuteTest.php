@@ -1,38 +1,43 @@
 <?php
 
-use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Module;
 use Oatmael\WasmPhp\Type\I32;
-use Oatmael\WasmPhp\Util\WasmReader;
 
 test('add', function () {
-    $wasm = file_get_contents('examples/add.wasm');
+    $module = wat2module(<<<WAT
+        (module
+            (func (export "addTwo") (param i32 i32) (result i32)
+                local.get 0
+                local.get 1
+                i32.add
+            )
+        )
+        WAT);
 
-    $util = new WasmReader();
-    $module = $util->read($wasm);
+    $ret = $module->execute('addTwo', [new I32(4), new I32(26)]);
 
-    $left = new I32(4);
-    $right = new I32(26);
-
-    $ret = $module->execute('addTwo', [$left, $right]);
-
-    // TODO: write actual tests here
-    expect($ret[0]->value)->toBe($left->value + $right->value);
+    expect($ret[0]->getValue())->toBe(30);
 });
 
 test('reverseSub', function () {
-    $wasm = file_get_contents('examples/reverseSub.wasm');
+    $module = wat2module(<<<WAT
+        (module
+            (func \$swap (param i32 i32) (result i32 i32)
+                local.get 1
+                local.get 0
+            )
+            (func (export "reverseSub") (param i32 i32) (result i32)
+                local.get 0
+                local.get 1
+                call \$swap
+                i32.sub
+            )
+        )
+        WAT);
 
-    $util = new WasmReader();
-    $module = $util->read($wasm);
+    $ret = $module->execute('reverseSub', [new I32(26), new I32(4)]);
 
-    $left = new I32(4);
-    $right = new I32(26);
-
-    $ret = $module->execute('reverseSub', [$right, $left]);
-
-    // TODO: write actual tests here
-    expect($ret[0]->value)->toBe($right->value - $left->value);
+    expect($ret[0]->getValue())->toBe(4 - 26);
 });
 
 test('importAdd', function (Module $module) {
@@ -40,9 +45,7 @@ test('importAdd', function (Module $module) {
     $right = new I32(26);
 
     $ret = $module
-        ->setImport('env', 'add', function ($stack, $call_stack, Store $store, I32 $left) use ($right) {
-            return new I32($left->value + $right->value);
-        })
+        ->setImport('env', 'add', fn (int $left) => $left + $right->getValue())
         ->execute('call_add', [$left]);
 
     expect($ret[0]->value)->toBe($right->value + $left->value);
@@ -59,54 +62,83 @@ test('importAdd', function (Module $module) {
 ]);
 
 test('memory', function () {
-    $wasm = file_get_contents('examples/memory.wasm');
-
-    $util = new WasmReader();
-    $module = $util->read($wasm);
+    $module = wat2module(<<<WAT
+        (module
+            (memory 1)
+            (func (export "i32_store")
+                i32.const 0
+                i32.const 42
+                i32.store
+            )
+        )
+        WAT);
 
     $ret = $module->execute('i32_store', []);
 
-    // TODO: write actual tests here
-    expect($ret)->toBeEmpty();
+    expect($ret)->toBeNull();
+    expect(array_slice($module->getMemory()->data, 0, 4))->toBe([42, 0, 0, 0]);
 });
 
 test('data', function () {
-    $wasm = file_get_contents('examples/data.wasm');
+    $module = wat2module(<<<WAT
+        (module
+            (memory 1)
+            (data (i32.const 0) "hello")
+            (data (i32.const 5) "world")
+            (func (export "noop"))
+        )
+        WAT);
 
-    $util = new WasmReader();
-    $module = $util->read($wasm);
+    $module->execute('noop', []);
 
-    $ret = [];
-    // $ret = $module->execute('i32_store', []);
-
-    // TODO: write actual tests here
-    expect($ret)->toBeEmpty();
+    expect(array_slice($module->getMemory()->data, 0, 10))->toBe(array_map(ord(...), str_split('helloworld')));
 });
 
 test('globals', function () {
-    $wasm = file_get_contents('examples/globals.wasm');
-
-    $util = new WasmReader();
-    $module = $util->read($wasm);
+    $module = wat2module(<<<WAT
+        (module
+            (global \$a (mut i32) (i32.const 4))
+            (global \$b i32 (i32.const 26))
+            (func (export "addTwo") (param i32) (result i32)
+                local.get 0
+                global.set \$a
+                global.get \$a
+                global.get \$b
+                i32.add
+            )
+        )
+        WAT);
 
     $ret = $module->execute('addTwo', [new I32(5)]);
 
-    // TODO: write actual tests here
-    expect($ret[0]->value)->toBe(31);
+    expect($ret[0]->getValue())->toBe(31);
 });
 
 test('start', function () {
-    $wasm = file_get_contents('examples/start.wasm');
+    $module = wat2module(<<<WAT
+        (module
+            (import "env" "init" (func \$init))
+            (func (export "addTwo") (param i32 i32) (result i32)
+                local.get 0
+                local.get 1
+                i32.add
+            )
+            (start \$init)
+        )
+        WAT);
 
-    $util = new WasmReader();
-    $module = $util->read($wasm);
-    $module->setImport('env', 'init', function () {});
+    $started = 0;
+    $module->setImport('env', 'init', function () use (&$started) {
+        $started++;
+    });
 
     $ret = $module->execute('addTwo', [new I32(4), new I32(26)]);
+    $module->execute('addTwo', [new I32(4), new I32(26)]);
 
-    // TODO: write actual tests here
-    expect($ret[0]->value)->toBe(30);
+    expect($ret[0]->getValue())->toBe(30);
+    expect($started)->toBe(1);
 });
+
 
 test('fibonacci', function (Module $module) {
     $fib = [

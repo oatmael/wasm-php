@@ -6,13 +6,12 @@ use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Type\I32;
 use Oatmael\WasmPhp\Util\WasmReader;
 
-#[Opcode(StandardOpcode::i32_const)]
 class I32Const implements InstructionInterface {
     public function __construct(public readonly I32 $const) {}
 
     public static function fromInput(string $input, int &$offset): InstructionInterface
     {
-        $const = WasmReader::readLEB128int32($input, $offset);
+        $const = WasmReader::readLEB128Int32($input, $offset);
         return new self(new I32($const));
     }
 

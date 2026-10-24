@@ -5,11 +5,8 @@ namespace Oatmael\WasmPhp\Instruction\Simd;
 use Exception;
 use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Instruction\InstructionInterface;
-use Oatmael\WasmPhp\Instruction\Opcode;
-use Oatmael\WasmPhp\Instruction\SimdOpcode;
 use Oatmael\WasmPhp\Util\WasmReader;
 
-#[Opcode(SimdOpcode::v128_load64_splat)]
 class V128Load64Splat implements InstructionInterface
 {
   public function __construct(
@@ -19,9 +16,9 @@ class V128Load64Splat implements InstructionInterface
 
   public static function fromInput(string $input, int &$offset): InstructionInterface
   {
-    $align = WasmReader::readUint32($input, $offset);
-    $offset = WasmReader::readUint32($input, $offset);
-    return new self($align, $offset);
+    $align = WasmReader::readLEB128Uint32($input, $offset);
+    $mem_offset = WasmReader::readLEB128Uint32($input, $offset);
+    return new self($align, $mem_offset);
   }
 
   public function execute(array &$stack, array &$call_stack, Store $store)

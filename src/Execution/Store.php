@@ -2,17 +2,23 @@
 
 namespace Oatmael\WasmPhp\Execution;
 
+use Closure;
 use Exception;
+use Oatmael\WasmPhp\Import\HostFunction;
 use Oatmael\WasmPhp\Type\F32;
 use Oatmael\WasmPhp\Type\F64;
+use Oatmael\WasmPhp\Type\Func;
 use Oatmael\WasmPhp\Type\I32;
 use Oatmael\WasmPhp\Type\I64;
+use Oatmael\WasmPhp\Type\Import;
+use Oatmael\WasmPhp\Type\Code;
 use Oatmael\WasmPhp\Type\Data;
+use Oatmael\WasmPhp\Type\Local;
 use Oatmael\WasmPhp\Type\Memory;
 use Oatmael\WasmPhp\Util\ValueType;
 
 class Store {
-    protected array $import_callables;
+    protected array $host_functions;
     protected bool $initialised;
 
     public function __construct(
@@ -28,7 +34,7 @@ class Store {
         public array $elements,
     )
     {
-        $this->import_callables = [];
+        $this->host_functions = [];
         $this->initialised = false;
     }
 
@@ -42,7 +48,7 @@ class Store {
         foreach ($this->data as $data_section) {
 
             /** @var Memory|null $data_memory */
-            $data_memory = $memory[$data_section->memory_idx] ?? null;
+            $data_memory = $this->memory[$data_section->memory_idx] ?? null;
             if (!$data_memory) {
                 throw new Exception("Can't load data into memory, no memory found for index " . $data_section->memory_idx);
             }
@@ -58,33 +64,44 @@ class Store {
     }
 
     public function setImport(string $module, string $field, callable $func): self {
-        $this->import_callables[$module][$field] = $func;
+        $import_idx = array_find_key($this->imports, static fn (Import $import) => $import->module === $module && $import->field === $field)
+            ?? throw new Exception("Module does not import $module.$field");
+
+        $this->host_functions[$import_idx] = new HostFunction(Closure::fromCallable($func), $this->getFunctionType($import_idx), "$module.$field");
         return $this;
     }
 
+    // Function indices count imports first, then the module's own functions
+    public function getFunctionType(int $function_idx): Func
+    {
+        $type_idx = $function_idx < count($this->imports) ?
+            $this->imports[$function_idx]->idx :
+            $this->functions[$function_idx - count($this->imports)] ?? throw new Exception('Invalid function index: ' . $function_idx);
+
+        return $this->types[$type_idx];
+    }
+
+    // A block type is either empty, a single result type, or an index into the type section
+    public function resolveBlockType(ValueType|int $block_type): Func
+    {
+        return match (true) {
+            is_int($block_type)            => $this->types[$block_type] ?? throw new Exception('Invalid block type index: ' . $block_type),
+            $block_type === ValueType::VOID => new Func(params: [], results: []),
+            default                        => new Func(params: [], results: [$block_type]),
+        };
+    }
+
     public function pushFrame(array &$stack, array &$call_stack, int $function_idx) {
-        if ($function_idx >= count($this->imports)) {
-            $import = null;
-            $function = $this->types[$this->functions[$function_idx - count($this->imports)]];
-        } else {
-            $import = $this->imports[$function_idx];
-            $function = $this->types[$import->idx];
-        }
+        $function = $this->getFunctionType($function_idx);
 
         $bottom = count($stack) - count($function->params);
         $locals = array_splice($stack, $bottom);
 
-        if ($import) {
-            $import_func = $this->import_callables[$import->module][$import->field] ?? null;
-            if (!$import_func) {
-                throw new Exception('Undefined import ' . $import->module . ':' . $import->field);
-            }
+        if ($function_idx < count($this->imports)) {
+            $import = $this->imports[$function_idx];
+            $host_function = $this->host_functions[$function_idx] ?? throw new Exception('Undefined import ' . $import->module . '.' . $import->field);
 
-            // TODO: provide a nicer interface for the parameters exposed to the import function (maybe some sort of reflection inference?)
-            $ret = $import_func($stack, $call_stack, $this, ...$locals);
-            if ($ret) {
-                array_push($stack, ...(is_array($ret) ? $ret : [$ret]));
-            }
+            array_push($stack, ...$host_function->call($locals, $this));
             return;
         }
 
@@ -99,7 +116,7 @@ class Store {
                     ValueType::I64 => new I64(0),
                     ValueType::F32 => new F32(0),
                     ValueType::F64 => new F64(0),
-                    default => throw new Exception('Invalid local type: ' . get_class($local->value_type)),
+                    default => throw new Exception('Invalid local type: ' . $local->value_type->name),
                 };
             }
         }
@@ -121,20 +138,37 @@ class Store {
             throw new Exception('No frame to pop');
         }
 
-        if ($frame->arity > 0) {
-            $ret = [];
-            for ($i = 0; $i < $frame->arity; $i++){
-                $value = array_pop($stack);
-                if (!$value) {
-                    throw new Exception('No return value found for frame, expected arity ' . $frame->arity);
-                }
-                $ret[] = $value;
-            }
+        self::unwind($stack, $frame->stack_pointer, $frame->arity);
+    }
 
-            array_splice($stack, $frame->stack_pointer);
-            array_push($stack, ...$ret);
-        } else {
-            array_splice($stack, $frame->stack_pointer);
+    // Branch to the label `$depth` levels out (0 is the innermost block). Branching past the outermost block returns from the function.
+    public function branch(array &$stack, array &$call_stack, int $depth)
+    {
+        /** @var Frame $frame */
+        $frame = end($call_stack);
+        $label_idx = count($frame->control_stack) - 1 - $depth;
+        if ($label_idx === -1) {
+            $this->popFrame($stack, $call_stack);
+            return;
         }
+
+        /** @var ControlStackEntry|null $label */
+        $label = $frame->control_stack[$label_idx] ?? throw new Exception('Invalid branch depth: ' . $depth);
+
+        array_splice($frame->control_stack, $label_idx);
+        self::unwind($stack, $label->stack_height, $label->arity);
+        $frame->program_counter = $label->break_target;
+    }
+
+    // Discard the operand stack down to $height, keeping the top $arity values
+    protected static function unwind(array &$stack, int $height, int $arity)
+    {
+        $values = $arity > 0 ? array_slice($stack, -$arity) : [];
+        if (count($values) !== $arity || count($stack) - $arity < $height) {
+            throw new Exception('Not enough values on the stack, expected ' . $arity);
+        }
+
+        array_splice($stack, $height);
+        array_push($stack, ...$values);
     }
 }

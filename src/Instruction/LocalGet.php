@@ -5,7 +5,6 @@ namespace Oatmael\WasmPhp\Instruction;
 use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Util\WasmReader;
 
-#[Opcode(StandardOpcode::local_get)]
 class LocalGet implements InstructionInterface {
     public function __construct(
         public readonly int $local_idx,

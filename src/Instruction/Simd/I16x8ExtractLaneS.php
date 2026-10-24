@@ -5,11 +5,8 @@ namespace Oatmael\WasmPhp\Instruction\Simd;
 use Exception;
 use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Instruction\InstructionInterface;
-use Oatmael\WasmPhp\Instruction\SimdOpcode;
-use Oatmael\WasmPhp\Instruction\Opcode;
 use Oatmael\WasmPhp\Util\WasmReader;
 
-#[Opcode(SimdOpcode::i16x8_extract_lane_s)]
 class I16x8ExtractLaneS implements InstructionInterface
 {
   public function __construct(

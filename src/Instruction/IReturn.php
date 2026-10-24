@@ -5,7 +5,6 @@ namespace Oatmael\WasmPhp\Instruction;
 use Exception;
 use Oatmael\WasmPhp\Execution\Store;
 
-#[Opcode(StandardOpcode::return)]
 class IReturn implements InstructionInterface
 {
     public static function fromInput(string $input, int &$offset): InstructionInterface {

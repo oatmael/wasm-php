@@ -7,7 +7,6 @@ use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Type\F32;
 use Oatmael\WasmPhp\Util\WasmReader;
 
-#[Opcode(StandardOpcode::f32_store)]
 class F32Store implements InstructionInterface
 {
   public function __construct(

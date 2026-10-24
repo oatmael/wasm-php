@@ -2,13 +2,26 @@
 
 namespace Tests\Feature\StandardOpcode;
 
+use Oatmael\WasmPhp\Module;
+
 test('f64_abs', function () {})->todo();
 
 test('f64_add', function () {})->todo();
 
 test('f64_ceil', function () {})->todo();
 
-test('f64_const', function () {})->todo();
+test('f64_const', function (Module $module) {
+  $ret = $module->execute('f64_const', []);
+  expect($ret[0]->getValue())->toBe(-1.25);
+})->with([
+  'module' => fn() => wat2module(<<<WAT
+    (module
+      (func (export "f64_const") (result f64)
+        (f64.const -1.25)
+      )
+    )
+    WAT)
+]);
 
 test('f64_convert_i32_s', function () {})->todo();
 

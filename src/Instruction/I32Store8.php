@@ -6,7 +6,6 @@ use Exception;
 use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Util\WasmReader;
 
-#[Opcode(StandardOpcode::i32_store8)]
 class I32Store8 implements InstructionInterface
 {
   public function __construct(

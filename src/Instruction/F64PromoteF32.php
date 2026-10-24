@@ -5,7 +5,6 @@ namespace Oatmael\WasmPhp\Instruction;
 use Exception;
 use Oatmael\WasmPhp\Execution\Store;
 
-#[Opcode(StandardOpcode::f64_promote_f32)]
 class F64PromoteF32 implements InstructionInterface {
     public static function fromInput(string $input, int &$offset): InstructionInterface {
         return new self();

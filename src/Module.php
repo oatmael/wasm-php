@@ -8,10 +8,6 @@ use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Execution\Frame;
 use Oatmael\WasmPhp\Type\Export;
 use Oatmael\WasmPhp\Instruction\InstructionInterface;
-use Oatmael\WasmPhp\Type\F32;
-use Oatmael\WasmPhp\Type\F64;
-use Oatmael\WasmPhp\Type\I32;
-use Oatmael\WasmPhp\Type\I64;
 use Oatmael\WasmPhp\Type\Memory;
 use Oatmael\WasmPhp\Util\ExportType;
 use Oatmael\WasmPhp\Util\ValueType;
@@ -82,30 +78,20 @@ class Module {
             }
         }
 
-        $export = array_find($this->store->exports, static fn (Export $export) => $export->type === ExportType::FUNCTION && $export->name === $root);
+        $export = array_find($this->store->exports, static fn (Export $export) => $export->type === ExportType::FUNCTION && $export->name === $root)
+            ?? throw new Exception("No exported function named '$root'");
 
-        $function = $this->store->types[$this->store->functions[$export->idx - count($this->store->imports)]];
+        $function = $this->store->getFunctionType($export->idx);
         $arity = count($function->results);
 
-        $bad_signature = count($function->params) !== count($args);
-        $expected = [];
-        foreach ($function->params as $i => $param) {
-            $expected_param = match ($param) {
-                ValueType::I32 => I32::class,
-                ValueType::I64 => I64::class,
-                ValueType::F32 => F32::class,
-                ValueType::F64 => F64::class,
-                default => null,
-            };
+        $expected = array_map(static fn (ValueType $param) => $param->valueClass(), $function->params);
 
-            if (!is_a($args[$i], $expected_param, true)) {
-                $bad_signature = true;
-            }
-            $expected[] = $expected_param;
-        }
+        $args = array_values($args);
+        $bad_signature = count($expected) !== count($args) ||
+            array_any($args, static fn ($arg, int $i) => !is_a($arg, $expected[$i]));
 
         if ($bad_signature) {
-            $provided = array_map(static fn ($arg) => get_class($arg), $args);
+            $provided = array_map(get_debug_type(...), $args);
             throw new Exception('Bad export call - expected [' .implode(', ', $expected) . '], got [' . implode(', ', $provided) . ']');
         }
 
@@ -115,16 +101,11 @@ class Module {
         $this->executeFrame();
 
         if ($arity > 0) {
-            $ret = [];
-            for ($i = 0; $i < $arity; $i++){
-                $value = array_pop($this->stack);
-                if (!$value) {
-                    throw new Exception('No return value found');
-                }
-                $ret[] = $value;
+            if (count($this->stack) < $arity) {
+                throw new Exception('No return value found');
             }
 
-            return $ret;
+            return array_slice($this->stack, -$arity);
         }
 
         return null;
