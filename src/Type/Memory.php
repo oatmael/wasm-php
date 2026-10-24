@@ -31,6 +31,16 @@ class Memory {
         return pack('C*', ...array_slice($this->data, $address, $length));
     }
 
+    public function write(int $address, string $bytes): void
+    {
+        $length = strlen($bytes);
+        if ($address < 0 || $address + $length > count($this->data)) {
+            throw new Exception("Out of bounds memory access writing $length bytes at address $address");
+        }
+
+        array_splice($this->data, $address, $length, unpack('C*', $bytes));
+    }
+
     public function grow(int $pages): int
     {
         if ((count($this->data) + ($pages * self::PAGE_SIZE)) > (($this->max ? $this->max : self::PAGE_SIZE) * self::PAGE_SIZE)) {

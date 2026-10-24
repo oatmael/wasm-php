@@ -18,7 +18,6 @@ class F32ConvertI64U implements InstructionInterface {
             throw new Exception('Invalid operand types for f32.convert_i64_u');
         }
 
-        $value = $target->toUnsigned()->value;
-        array_push($stack, new F32((float)$value));
+        array_push($stack, new F32($target->toBigInteger(unsigned: true)->toFloat()));
     }
 }
