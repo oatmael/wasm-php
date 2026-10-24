@@ -2,7 +2,6 @@
 
 namespace Oatmael\WasmPhp\Instruction;
 
-use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Util\WasmReader;
 
 // select with explicit operand types, which are only needed for validation

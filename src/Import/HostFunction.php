@@ -12,6 +12,8 @@ use Oatmael\WasmPhp\Type\Func;
 use Oatmael\WasmPhp\Type\I32;
 use Oatmael\WasmPhp\Type\I64;
 use Oatmael\WasmPhp\Type\Memory;
+use Oatmael\WasmPhp\Type\NullRef;
+use Oatmael\WasmPhp\Type\RefType;
 use Oatmael\WasmPhp\Type\ValueInterface;
 use Oatmael\WasmPhp\Util\ValueType;
 use ReflectionAttribute;
@@ -70,10 +72,19 @@ class HostFunction
         };
     }
 
-    protected function bindValue(ReflectionParameter $param, string $type_name, ?ValueType $wasm_type): Closure
+    protected function bindValue(ReflectionParameter $param, string $type_name, ValueType|RefType|null $wasm_type): Closure
     {
         if (!$wasm_type) {
             throw $this->parameterError($param, 'there are no wasm arguments left to bind it to');
+        }
+
+        // References are passed as they are: NullRef, FuncRef, ExternRef, and so on
+        if ($wasm_type instanceof RefType) {
+            if ($type_name !== 'mixed' && !is_a($type_name, ValueInterface::class, true)) {
+                throw $this->parameterError($param, 'it cannot receive a ' . $wasm_type->label() . ' - references are passed as value objects');
+            }
+
+            return static fn (array $args) => $args[0];
         }
 
         $unsigned = (bool) $param->getAttributes(Unsigned::class);
@@ -93,7 +104,7 @@ class HostFunction
             $type_name === 'float' && in_array($wasm_type, [ValueType::F32, ValueType::F64], true)
                                                                          => static fn (ValueInterface $value) => $value->getValue(),
             $type_name === 'bool' && $wasm_type === ValueType::I32        => static fn (I32 $value) => $value->getValue() !== 0,
-            default => throw $this->parameterError($param, 'it cannot receive an ' . strtolower($wasm_type->name)),
+            default => throw $this->parameterError($param, 'it cannot receive an ' . $wasm_type->label()),
         };
 
         return static fn (array $args) => $convert($args[0]);
@@ -106,7 +117,7 @@ class HostFunction
 
         $arity = $decoder->arity();
         $string_params = array_slice($wasm_params, 0, $arity);
-        if (count($string_params) !== $arity || array_any($string_params, static fn (ValueType $type) => $type !== ValueType::I32)) {
+        if (count($string_params) !== $arity || array_any($string_params, static fn (ValueType|RefType $type) => $type !== ValueType::I32)) {
             throw $this->parameterError($param, $decoder::class . " strings take $arity i32 arguments");
         }
 
@@ -135,8 +146,16 @@ class HostFunction
         return array_map($this->toValue(...), $values, $results);
     }
 
-    protected function toValue(mixed $value, ValueType $type): ValueInterface
+    protected function toValue(mixed $value, ValueType|RefType $type): ValueInterface
     {
+        if ($type instanceof RefType) {
+            return match (true) {
+                $value === null && $type->nullable => new NullRef(),
+                $value instanceof ValueInterface   => $value,
+                default => throw new Exception("Import {$this->name} returned " . get_debug_type($value) . ', expected ' . $type->label()),
+            };
+        }
+
         return match (true) {
             $value instanceof ValueInterface && $value::class === $type->valueClass() => $value,
             is_bool($value) && $type === ValueType::I32                         => new I32((int) $value),
@@ -145,7 +164,7 @@ class HostFunction
             $value instanceof BigInteger && $type === ValueType::I64            => I64::fromBigInteger($value),
             (is_int($value) || is_float($value)) && $type === ValueType::F32    => new F32((float) $value),
             (is_int($value) || is_float($value)) && $type === ValueType::F64    => new F64((float) $value),
-            default => throw new Exception("Import {$this->name} returned " . get_debug_type($value) . ', expected ' . strtolower($type->name)),
+            default => throw new Exception("Import {$this->name} returned " . get_debug_type($value) . ', expected ' . $type->label()),
         };
     }
 
@@ -161,7 +180,7 @@ class HostFunction
 
     protected function signatureError(string $reason): Exception
     {
-        $types = static fn (array $types) => implode(', ', array_map(static fn (ValueType $type) => strtolower($type->name), $types));
+        $types = static fn (array $types) => implode(', ', array_map(static fn (ValueType|RefType $type) => $type->label(), $types));
 
         return new Exception("Import {$this->name} has signature ({$types($this->type->params)}) -> ({$types($this->type->results)}), but $reason");
     }

@@ -3,7 +3,6 @@
 namespace Oatmael\WasmPhp\Instruction;
 
 use Oatmael\WasmPhp\Execution\Store;
-use Oatmael\WasmPhp\Type\F32;
 use Oatmael\WasmPhp\Util\WasmReader;
 
 class F32Store implements InstructionInterface

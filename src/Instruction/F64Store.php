@@ -3,7 +3,6 @@
 namespace Oatmael\WasmPhp\Instruction;
 
 use Oatmael\WasmPhp\Execution\Store;
-use Oatmael\WasmPhp\Type\F64;
 use Oatmael\WasmPhp\Util\WasmReader;
 
 class F64Store implements InstructionInterface

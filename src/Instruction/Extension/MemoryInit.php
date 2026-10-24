@@ -4,7 +4,6 @@ namespace Oatmael\WasmPhp\Instruction\Extension;
 
 use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Instruction\InstructionInterface;
-use Oatmael\WasmPhp\Type\I32;
 use Oatmael\WasmPhp\Util\WasmReader;
 
 class MemoryInit implements InstructionInterface
