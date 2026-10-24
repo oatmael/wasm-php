@@ -8,11 +8,13 @@ use Oatmael\WasmPhp\Type\Memory;
 
 test('memory_grow', function (Module $module) {
     $ret = $module->execute('memory_grow', [new I32(1)]);
-    expect($ret[0]->value)->toBe(1);
+    expect($ret[0])->toBeInstanceOf(I32::class);
+    expect($ret[0]->getValue())->toBe(1);
     expect($module->getMemory()->data)->toHaveCount(Memory::PAGE_SIZE * 2);
 
     $ret = $module->execute('memory_grow', [new I32(1)]);
-    expect($ret[0]->value)->toBe(2);
+    expect($ret[0])->toBeInstanceOf(I32::class);
+    expect($ret[0]->getValue())->toBe(2);
     expect($module->getMemory()->data)->toHaveCount(Memory::PAGE_SIZE * 3);
 })->with([
     'module' => fn() => wat2module(<<<WAT
@@ -27,12 +29,14 @@ test('memory_grow', function (Module $module) {
 
 test('memory_size', function (Module $module) {
     $ret = $module->execute('memory_size', []);
-    expect($ret[0]->value)->toBe(1);
+    expect($ret[0])->toBeInstanceOf(I32::class);
+    expect($ret[0]->getValue())->toBe(1);
 
     $module->execute('memory_grow', [new I32(1)]);
 
     $ret = $module->execute('memory_size', []);
-    expect($ret[0]->value)->toBe(2);
+    expect($ret[0])->toBeInstanceOf(I32::class);
+    expect($ret[0]->getValue())->toBe(2);
 })->with([
     'module' => fn() => wat2module(<<<WAT
     (module
