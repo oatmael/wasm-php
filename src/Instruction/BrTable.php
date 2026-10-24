@@ -2,7 +2,6 @@
 
 namespace Oatmael\WasmPhp\Instruction;
 
-use Exception;
 use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Util\WasmReader;
 
@@ -26,22 +25,8 @@ class BrTable implements InstructionInterface
 
   public function execute(array &$stack, array &$call_stack, Store $store)
   {
-    /** @var Frame $frame */
-    $frame = end($call_stack);
-
     $condition = array_pop($stack);
-    $break_depth = $this->break_depths[$condition->value] ?? $this->default_depth;
-    if ($break_depth >= count($frame->control_stack)) {
-      throw new Exception('Invalid br_table depth: ' . $break_depth);
-    }
-
-    $control_stack = [];
-    for ($i = 0; $i <= $break_depth; $i++) {
-      $control_stack[] = array_pop($frame->control_stack);
-    }
-
-    /** @var ControlStackEntry $result */
-    $result = end($control_stack);
-    $frame->program_counter = $result->break_target;
+    $break_depth = $this->break_depths[$condition->toUnsigned()->value] ?? $this->default_depth;
+    $store->branch($stack, $call_stack, $break_depth);
   }
 }

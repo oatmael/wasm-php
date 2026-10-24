@@ -3,13 +3,17 @@
 namespace Oatmael\WasmPhp\Util;
 
 use Exception;
+use Oatmael\WasmPhp\Instruction\Block;
 use Oatmael\WasmPhp\Instruction\End;
 use Oatmael\WasmPhp\Instruction\ExtensionOpcode;
 use Oatmael\WasmPhp\Instruction\F32Const;
 use Oatmael\WasmPhp\Instruction\F64Const;
 use Oatmael\WasmPhp\Instruction\I32Const;
 use Oatmael\WasmPhp\Instruction\I64Const;
+use Oatmael\WasmPhp\Instruction\IElse;
+use Oatmael\WasmPhp\Instruction\IIf;
 use Oatmael\WasmPhp\Instruction\InstructionInterface;
+use Oatmael\WasmPhp\Instruction\Loop;
 use Oatmael\WasmPhp\Instruction\SimdOpcode;
 use Oatmael\WasmPhp\Instruction\StandardOpcode;
 use Oatmael\WasmPhp\Module;
@@ -307,7 +311,36 @@ class WasmReader {
             throw new Exception('Malformed code body - instructions overran the body size');
         }
 
+        self::linkBlocks($instructions);
+
         return new Code($locals, $instructions);
+    }
+
+    // Record the else/end indices on each structured instruction, so they don't need to be searched for at runtime
+    protected static function linkBlocks(array $instructions): void
+    {
+        $open = [];
+        foreach ($instructions as $i => $instruction) {
+            if ($instruction instanceof Block || $instruction instanceof Loop || $instruction instanceof IIf) {
+                $open[] = $instruction;
+            } elseif ($instruction instanceof IElse) {
+                $if = end($open);
+                if (!($if instanceof IIf) || $if->else !== null) {
+                    throw new Exception('Else without a matching if at instruction ' . $i);
+                }
+                $if->else = $i;
+            } elseif ($instruction instanceof End) {
+                // An end with no open block closes the function body
+                $block = array_pop($open);
+                if ($block instanceof Block || $block instanceof IIf) {
+                    $block->end = $i;
+                }
+            }
+        }
+
+        if ($open) {
+            throw new Exception('Malformed code body - unclosed block');
+        }
     }
 
     // https://webassembly.github.io/spec/core/binary/modules.html#data-section

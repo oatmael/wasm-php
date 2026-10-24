@@ -17,7 +17,7 @@ composer install
 ./vendor/bin/pest --filter=i32_add  # one test by name
 ```
 
-Tests need WABT's `wat2wasm` on `PATH` (override with the `WAT2WASM` env var), because most tests compile inline WAT at runtime. `tests/Feature/ExecuteTest.php` loads `examples/*.wasm` through relative paths, so run Pest from the repo root. CI (`.github/workflows/test.yml`) installs WABT via apt and runs `./vendor/bin/pest --ci` on PHP 8.5.
+Tests need WABT's `wat2wasm` on `PATH` (override with the `WAT2WASM` env var), because most tests compile inline WAT at runtime. CI (`.github/workflows/test.yml`) installs WABT via apt and runs `./vendor/bin/pest --ci` on PHP 8.5.
 
 ## Architecture
 
@@ -32,9 +32,9 @@ Tests need WABT's `wat2wasm` on `PATH` (override with the `WAT2WASM` env var), b
 - Many opcodes are still stubs that throw `Exception('Not implemented: ...')`. These include all of SIMD, most I64/F64 opcodes, and most extension opcodes.
 
 **Execution**:
-- `Module::execute($name, $args)` checks the argument types against the export's signature, pushes a frame, and runs `executeFrame()`. That is a flat loop: it increments the top frame's `program_counter` (frames start at -1) and executes one instruction per step. No PHP recursion is used for wasm calls. `MAX_CALL_STACK` is 10,000.
+- `Module::execute($name, $args)` looks up the export (throwing if it is missing), checks the argument types against its signature (`Store::getFunctionType()`), pushes a frame, and runs `executeFrame()`. That is a flat loop: it increments the top frame's `program_counter` (frames start at -1) and executes one instruction per step. Results are returned in declaration order. No PHP recursion is used for wasm calls. `MAX_CALL_STACK` is 10,000.
 - `Execution\Store` holds every module section, runs data-segment initialisation on first execute, and handles `pushFrame` / `popFrame`. Function indices include imports: indices below `count($imports)` are imports, and anything at or above that is an offset into `functions`/`codes`. Imported functions are PHP callables registered with `Module::setImport()`. They are called as `fn($stack, $call_stack, $store, ...$args)` and may return a value or an array of values.
-- Structured control flow: `Block`/`Loop`/`IIf` scan forward for the matching `End` and push a `ControlStackEntry` (break target and type) onto the frame's `control_stack`. `Br*` pops entries and jumps. `End` pops a control entry or, if none remain, pops the frame.
+- Structured control flow: once a function body is decoded, `WasmReader::linkBlocks()` records the matching `end` (and `else`) index on each `Block`/`IIf`. At runtime, `Block`/`Loop`/`IIf` push a `ControlStackEntry` (break target, stack height, label arity) onto the frame's `control_stack`. `Br`/`BrIf`/`BrTable`/`IElse` all go through `Store::branch()`, which pops labels, unwinds the operand stack to the label's height while keeping its arity's values, and jumps; branching past the outermost label returns from the function. `End` pops a control entry or, if none remain, pops the frame.
 
 **Values (`src/Type/I32|I64|F32|F64`)**: thin wrappers around PHP `int`/`float`. PHP ints are signed 64-bit, so `I32` stores an int and normalises it when read. `getValue()` sign-extends the low 32 bits, and `toUnsigned()` gives the unsigned view (used for memory addresses). Overflow and wrap behaviour is handled per instruction (README "Limitations" covers the signed-integer caveats). Memory is a PHP array of bytes, and loads/stores use `pack`/`unpack`.
 

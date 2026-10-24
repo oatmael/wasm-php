@@ -4,7 +4,6 @@ namespace Oatmael\WasmPhp\Instruction;
 
 use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Execution\Frame;
-use Oatmael\WasmPhp\Execution\ControlStackEntry;
 
 class End implements InstructionInterface {
     public static function fromInput(string $input, int &$offset): InstructionInterface
@@ -17,8 +16,7 @@ class End implements InstructionInterface {
         /** @var Frame $frame */
         $frame = end($call_stack);
         if (count($frame->control_stack)) {
-            /** @var ControlStackEntry */
-            $control_stack_entry = array_pop($frame->control_stack);
+            array_pop($frame->control_stack);
         } else {
             $store->popFrame($stack, $call_stack);
         }

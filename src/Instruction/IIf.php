@@ -8,6 +8,10 @@ use Oatmael\WasmPhp\Util\ValueType;
 use Oatmael\WasmPhp\Util\WasmReader;
 
 class IIf implements InstructionInterface {
+    // Indices of the matching else (if any) and end instructions, linked by WasmReader once the function body is decoded
+    public ?int $else = null;
+    public int $end;
+
     public function __construct(
         public readonly ValueType|int $block_type,
     ) {}
@@ -21,44 +25,21 @@ class IIf implements InstructionInterface {
         /** @var Frame $frame */
         $frame = end($call_stack);
 
-        $break_target = null;
-        $else_block = null;
-        $block_count = 1;
-        $if_count = 1;
-        for ($i = $frame->program_counter + 1; $i < count($frame->instructions); $i++) {
-            $instruction = $frame->instructions[$i];
-            if ($instruction instanceof Block || $instruction instanceof Loop) {
-                $block_count++;
-            } elseif ($instruction instanceof IIf) {
-                $if_count++;
-                $block_count++;
-            } elseif ($instruction instanceof IElse) {
-                if ($if_count === 1 && $else_block === null) {
-                    $else_block = $i;
-                }
-            } elseif ($instruction instanceof End) {
-                $if_count--;
-                $block_count--;
-                if ($block_count === 0) {
-                    $break_target = $i;
-                    break;
-                }
+        $condition = array_pop($stack);
+        if (!$condition->getValue()) {
+            if ($this->else === null) {
+                $frame->program_counter = $this->end;
+                return;
             }
+
+            $frame->program_counter = $this->else;
         }
 
         $block_type = $store->resolveBlockType($this->block_type);
-
-        $condition = array_pop($stack);
-        if ($else_block && !$condition->value) {
-            $frame->program_counter = $else_block;
-        } else if ($else_block === null && !$condition->value) {
-            $frame->program_counter = $break_target;
-        } else {
-            array_push($frame->control_stack, new ControlStackEntry(
-                break_target: $break_target,
-                return_type: $block_type,
-                if_block: true
-            ));
-        }
+        array_push($frame->control_stack, new ControlStackEntry(
+            break_target: $this->end,
+            stack_height: count($stack) - count($block_type->params),
+            arity: count($block_type->results),
+        ));
     }
 }

@@ -23,14 +23,13 @@ class Loop implements InstructionInterface
   {
     /** @var Frame $frame */
     $frame = end($call_stack);
-    
-    $break_target = $frame->program_counter - 1;
-
     $block_type = $store->resolveBlockType($this->block_type);
 
+    // Branching to a loop re-executes the loop instruction, which pushes a fresh label
     array_push($frame->control_stack, new ControlStackEntry(
-      break_target: $break_target,
-      return_type: $block_type,
+      break_target: $frame->program_counter - 1,
+      stack_height: count($stack) - count($block_type->params),
+      arity: count($block_type->params),
     ));
   }
 }

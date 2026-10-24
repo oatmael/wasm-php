@@ -2,14 +2,15 @@
 
 namespace Oatmael\WasmPhp\Execution;
 
-use Oatmael\WasmPhp\Type\Func;
-
 class ControlStackEntry
 {
     public function __construct(
+        // Program counter to jump to when branching to this label - execution resumes at the instruction after it
         public int $break_target,
-        public Func $return_type,
-        public bool $if_block = false,
+        // Operand stack height when the block was entered (excluding its params)
+        public int $stack_height,
+        // Number of values a branch to this label carries (results for blocks, params for loops)
+        public int $arity,
     )
     {
     }

@@ -2,7 +2,6 @@
 
 namespace Oatmael\WasmPhp\Instruction;
 
-use Exception;
 use Oatmael\WasmPhp\Execution\ControlStackEntry;
 use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Util\ValueType;
@@ -11,6 +10,9 @@ use Oatmael\WasmPhp\Execution\Frame;
 
 class Block implements InstructionInterface
 {
+  // Index of the matching end instruction, linked by WasmReader once the function body is decoded
+  public int $end;
+
   public function __construct(
     public readonly ValueType|int $block_type,
   ) {}
@@ -24,31 +26,12 @@ class Block implements InstructionInterface
   {
     /** @var Frame $frame */
     $frame = end($call_stack);
-    
-    $break_target = null;
-    $block_count = 1;
-    for ($i = $frame->program_counter + 1; $i < count($frame->instructions); $i++) {
-      $instruction = $frame->instructions[$i];
-      if ($instruction instanceof Block || $instruction instanceof Loop || $instruction instanceof IIf) {
-        $block_count++;
-      } elseif ($instruction instanceof End) {
-        $block_count--;
-        if ($block_count === 0) {
-          $break_target = $i;
-          break;
-        }
-      }
-    }
-
-    if ($break_target === null) {
-      throw new Exception('No matching end found for block');
-    }
-    
     $block_type = $store->resolveBlockType($this->block_type);
 
     array_push($frame->control_stack, new ControlStackEntry(
-      break_target: $break_target,
-      return_type: $block_type,
+      break_target: $this->end,
+      stack_height: count($stack) - count($block_type->params),
+      arity: count($block_type->results),
     ));
   }
 }
