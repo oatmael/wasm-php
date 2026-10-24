@@ -1,5 +1,6 @@
 <?php
 
+use Brick\Math\BigInteger;
 use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Import\Encoding;
 use Oatmael\WasmPhp\Import\LengthPrefixed;
@@ -41,6 +42,19 @@ test('converts unsigned and bool arguments', function () {
     });
 
     expect($module->execute('call', [])[0]->getValue())->toBe(0);
+});
+
+test('converts i64s to and from BigInteger', function () {
+    $module = importModule('i64 i64', 'i64', '(i64.const -1) (i64.const -1)');
+    $module->setImport('env', 'f', function (BigInteger $signed, #[Unsigned] BigInteger $unsigned): BigInteger {
+        expect((string) $signed)->toBe('-1');
+        expect((string) $unsigned)->toBe('18446744073709551615');
+
+        // 2^64 - 2 wraps around to -2
+        return $unsigned->plus($signed);
+    });
+
+    expect($module->execute('call', [])[0]->getValue())->toBe(-2);
 });
 
 test('passes value wrappers through', function () {

@@ -2,6 +2,7 @@
 
 namespace Oatmael\WasmPhp\Import;
 
+use Brick\Math\BigInteger;
 use Closure;
 use Exception;
 use Oatmael\WasmPhp\Execution\Store;
@@ -76,8 +77,9 @@ class HostFunction
         }
 
         $unsigned = (bool) $param->getAttributes(Unsigned::class);
-        if ($unsigned && !($type_name === 'int' && $wasm_type === ValueType::I32)) {
-            throw $this->parameterError($param, '#[Unsigned] is only supported on int parameters bound to an i32');
+        $unsigned_supported = ($type_name === 'int' && $wasm_type === ValueType::I32) || ($type_name === BigInteger::class && $wasm_type === ValueType::I64);
+        if ($unsigned && !$unsigned_supported) {
+            throw $this->parameterError($param, '#[Unsigned] is only supported on int parameters bound to an i32, or BigInteger parameters bound to an i64');
         }
 
         $convert = match (true) {
@@ -86,6 +88,7 @@ class HostFunction
             $type_name === 'int' && $wasm_type === ValueType::I32         => $unsigned ?
                 static fn (I32 $value) => $value->getValue() & 0xFFFFFFFF :
                 static fn (I32 $value) => $value->getValue(),
+            $type_name === BigInteger::class && $wasm_type === ValueType::I64 => static fn (I64 $value) => $value->toBigInteger($unsigned),
             $type_name === 'int' && $wasm_type === ValueType::I64,
             $type_name === 'float' && in_array($wasm_type, [ValueType::F32, ValueType::F64], true)
                                                                          => static fn (ValueInterface $value) => $value->getValue(),
@@ -139,6 +142,7 @@ class HostFunction
             is_bool($value) && $type === ValueType::I32                         => new I32((int) $value),
             is_int($value) && $type === ValueType::I32                          => new I32($value),
             is_int($value) && $type === ValueType::I64                          => new I64($value),
+            $value instanceof BigInteger && $type === ValueType::I64            => I64::fromBigInteger($value),
             (is_int($value) || is_float($value)) && $type === ValueType::F32    => new F32((float) $value),
             (is_int($value) || is_float($value)) && $type === ValueType::F64    => new F64((float) $value),
             default => throw new Exception("Import {$this->name} returned " . get_debug_type($value) . ', expected ' . strtolower($type->name)),
