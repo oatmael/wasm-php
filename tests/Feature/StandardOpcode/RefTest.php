@@ -87,4 +87,4 @@ test('ref_eq', function () {
   expect($module->execute('i31', [new I32(5), new I32(5)])[0]->getValue())->toBe(1);
   expect($module->execute('i31', [new I32(5), new I32(6)])[0]->getValue())->toBe(0);
   expect($module->execute('null', [])[0]->getValue())->toBe(1);
-})->skip('Needs the GC instructions');
+});

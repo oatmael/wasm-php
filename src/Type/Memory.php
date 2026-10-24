@@ -19,7 +19,7 @@ class Memory {
         public readonly bool $is64 = false,
     )
     {
-        if ($min > $this->maxPages() || !self::canAllocate($min * self::PAGE_SIZE)) {
+        if ($min > $this->maxPages() || !self::canAllocate($min)) {
             throw new Exception("Can't allocate a memory of $min pages");
         }
 
@@ -73,7 +73,7 @@ class Memory {
     public function grow(int $pages): int
     {
         $previous = $this->pages();
-        if ($pages < 0 || $pages > $this->maxPages() - $previous || !self::canAllocate($pages * self::PAGE_SIZE)) {
+        if ($pages < 0 || $pages > $this->maxPages() - $previous || !self::canAllocate($pages)) {
             return -1;
         }
 
@@ -120,9 +120,13 @@ class Memory {
     }
 
     // Wasm allows growth to fail, so refuse growth that would exhaust PHP's memory limit rather than crashing
-    protected static function canAllocate(int $bytes): bool
+    protected static function canAllocate(int $pages): bool
     {
+        if ($pages > intdiv(PHP_INT_MAX, self::PAGE_SIZE)) {
+            return false;
+        }
+
         $limit = ini_parse_quantity(ini_get('memory_limit'));
-        return $limit <= 0 || $bytes <= ($limit - memory_get_usage()) / 2;
+        return $limit <= 0 || $pages * self::PAGE_SIZE <= ($limit - memory_get_usage()) / 2;
     }
 }
