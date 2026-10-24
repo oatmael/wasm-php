@@ -2,9 +2,7 @@
 
 namespace Oatmael\WasmPhp\Instruction;
 
-use Exception;
 use Oatmael\WasmPhp\Execution\Store;
-use Oatmael\WasmPhp\Type\I32;
 use Oatmael\WasmPhp\Type\I64;
 use Oatmael\WasmPhp\Util\WasmReader;
 
@@ -13,24 +11,19 @@ class I64Store8 implements InstructionInterface
     public function __construct(
         public readonly int $align,
         public readonly int $offset,
+        public readonly int $memory_idx = 0,
     ) {}
 
     public static function fromInput(string $input, int &$offset): InstructionInterface
     {
-        $mem_align = WasmReader::readLEB128Uint32($input, $offset);
-        $mem_offset = WasmReader::readLEB128Uint32($input, $offset);
-        return new self($mem_align, $mem_offset);
+        [$align, $memory_idx, $mem_offset] = WasmReader::readMemArg($input, $offset);
+        return new self($align, $mem_offset, $memory_idx);
     }
 
     public function execute(array &$stack, array &$call_stack, Store $store)
     {
         $value = array_pop($stack);
-        $addr = array_pop($stack);
-        if (!($value instanceof I64) || !($addr instanceof I32)) {
-            throw new Exception('Invalid stack params for i64.store8 opcode');
-        }
-
-        $memory = $store->memory[0]; // Only 1 memory is valid for v1
-        $memory->write($addr->toUnsigned()->value + $this->offset, pack('C', $value->getValue()));
+        $address = array_pop($stack);
+        $store->memory[$this->memory_idx]->store($address, $this->offset, chr($value->value & 0xFF));
     }
 }

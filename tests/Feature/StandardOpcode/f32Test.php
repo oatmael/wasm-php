@@ -144,6 +144,10 @@ test('f32_convert_i64_u', function (Module $module) {
   $ret = $module->execute('f32_convert_i64_u', [new I64(-1)]);
   expect($ret[0])->toBeInstanceOf(F32::class);
   expect($ret[0]->getValue())->toBe(18446744073709551616.0);
+
+  // 2^53 + 2^29 + 1 rounds up, but rounding to a double first would round down to a tie
+  $ret = $module->execute('f32_convert_i64_u', [new I64(0x20000020000001)]);
+  expect($ret[0]->getValue())->toBe(9007200328482816.0);
 })->with([
   'module' => wat2module(<<<WAT
   (module
@@ -152,8 +156,7 @@ test('f32_convert_i64_u', function (Module $module) {
     )
   )
   WAT),
-])
-  ->todo('Not currently handling unsigned 64-bit integers correctly');
+]);
 
 test('f32_copysign', function (Module $module) {
   $ret = $module->execute('f32_copysign', [new F32(1.0), new F32(2.0)]);
@@ -533,10 +536,10 @@ test('f32_sqrt', function (Module $module) {
 test('f32_store', function (Module $module) {
   $module->execute('f32_store', [new I32(42), new F32(2.5)]);
   $memory = $module->getMemory();
-  expect($memory->data[42])->toBe(0b00000000);
-  expect($memory->data[43])->toBe(0b00000000);
-  expect($memory->data[44])->toBe(0b00100000);
-  expect($memory->data[45])->toBe(0b01000000);
+  expect(ord($memory->data[42]))->toBe(0b00000000);
+  expect(ord($memory->data[43]))->toBe(0b00000000);
+  expect(ord($memory->data[44]))->toBe(0b00100000);
+  expect(ord($memory->data[45]))->toBe(0b01000000);
 })->with([
   'module' => wat2module(<<<WAT
   (module

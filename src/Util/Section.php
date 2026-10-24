@@ -17,4 +17,5 @@ enum Section: int {
     case CODE       = 0x0a;
     case DATA       = 0x0b;
     case DATA_COUNT = 0x0c;
+    case TAG        = 0x0d;
 }

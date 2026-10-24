@@ -18,6 +18,6 @@ class Call implements InstructionInterface {
 
     public function execute(array &$stack, array &$call_stack, Store $store)
     {
-        $store->pushFrame($stack, $call_stack, $this->function_idx);
+        $store->pushFrame($stack, $call_stack, $store->funcs[$this->function_idx]);
     }
 }

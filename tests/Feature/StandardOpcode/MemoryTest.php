@@ -4,18 +4,17 @@ namespace Tests\Feature\StandardOpcode;
 
 use Oatmael\WasmPhp\Module;
 use Oatmael\WasmPhp\Type\I32;
-use Oatmael\WasmPhp\Type\Memory;
 
 test('memory_grow', function (Module $module) {
     $ret = $module->execute('memory_grow', [new I32(1)]);
     expect($ret[0])->toBeInstanceOf(I32::class);
     expect($ret[0]->getValue())->toBe(1);
-    expect($module->getMemory()->data)->toHaveCount(Memory::PAGE_SIZE * 2);
+    expect($module->getMemory()->pages())->toBe(2);
 
     $ret = $module->execute('memory_grow', [new I32(1)]);
     expect($ret[0])->toBeInstanceOf(I32::class);
     expect($ret[0]->getValue())->toBe(2);
-    expect($module->getMemory()->data)->toHaveCount(Memory::PAGE_SIZE * 3);
+    expect($module->getMemory()->pages())->toBe(3);
 })->with([
     'module' => fn() => wat2module(<<<WAT
     (module

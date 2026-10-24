@@ -9,6 +9,8 @@ class Frame {
         public array $instructions,
         public int $arity,
         public array $locals,
+        // The store of the module that defined the function, which its instructions execute against
+        public Store $store,
         public array $control_stack = [],
     )
     {

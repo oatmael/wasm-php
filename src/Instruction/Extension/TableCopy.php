@@ -2,7 +2,6 @@
 
 namespace Oatmael\WasmPhp\Instruction\Extension;
 
-use Exception;
 use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Instruction\InstructionInterface;
 use Oatmael\WasmPhp\Util\WasmReader;
@@ -23,6 +22,13 @@ class TableCopy implements InstructionInterface
 
     public function execute(array &$stack, array &$call_stack, Store $store)
     {
-        throw new Exception('Not implemented: table.copy opcode');
+        $dst = $store->tables[$this->dst_table_idx];
+        $src = $store->tables[$this->src_table_idx];
+        $count = array_pop($stack);
+        $src_index = $src->operand(array_pop($stack));
+        $dst_index = $dst->operand(array_pop($stack));
+
+        // Both ranges are checked before anything is written
+        $dst->write($dst_index, $src->read($src_index, $dst->operand($count)));
     }
 }

@@ -15,11 +15,6 @@ class I64 implements ValueInterface {
         }
     }
 
-    public function getUSize(): int
-    {
-        return 8;
-    }
-
     public function getValue()
     {
         return $this->value;

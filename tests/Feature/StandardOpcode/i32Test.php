@@ -658,10 +658,10 @@ test('i32_shr_u', function (Module $module) {
 test('i32_store', function (Module $module) {
   $module->execute('i32_store', [new I32(42), new I32(0b11111111111111111010101001010101)]);
   $memory = $module->getMemory();
-  expect($memory->data[42])->toBe(0b01010101);
-  expect($memory->data[43])->toBe(0b10101010);
-  expect($memory->data[44])->toBe(0b11111111);
-  expect($memory->data[45])->toBe(0b11111111);
+  expect(ord($memory->data[42]))->toBe(0b01010101);
+  expect(ord($memory->data[43]))->toBe(0b10101010);
+  expect(ord($memory->data[44]))->toBe(0b11111111);
+  expect(ord($memory->data[45]))->toBe(0b11111111);
 })->with([
   'module' => fn() => wat2module(<<<WAT
     (module
@@ -676,10 +676,10 @@ test('i32_store', function (Module $module) {
 test('i32_store16', function (Module $module) {
   $module->execute('i32_store16', [new I32(42), new I32(0b11111111111111111010101001010101)]);
   $memory = $module->getMemory();
-  expect($memory->data[42])->toBe(0b01010101);
-  expect($memory->data[43])->toBe(0b10101010);
-  expect($memory->data[44])->not()->toBe(0b11111111);
-  expect($memory->data[45])->not()->toBe(0b11111111);
+  expect(ord($memory->data[42]))->toBe(0b01010101);
+  expect(ord($memory->data[43]))->toBe(0b10101010);
+  expect(ord($memory->data[44]))->not()->toBe(0b11111111);
+  expect(ord($memory->data[45]))->not()->toBe(0b11111111);
 })->with([
   'module' => fn() => wat2module(<<<WAT
     (module
@@ -694,10 +694,10 @@ test('i32_store16', function (Module $module) {
 test('i32_store8', function (Module $module) {
   $module->execute('i32_store8', [new I32(42), new I32(0b11111111111111111010101001010101)]);
   $memory = $module->getMemory();
-  expect($memory->data[42])->toBe(0b01010101);
-  expect($memory->data[43])->not()->toBe(0b10101010);
-  expect($memory->data[44])->not()->toBe(0b11111111);
-  expect($memory->data[45])->not()->toBe(0b11111111);
+  expect(ord($memory->data[42]))->toBe(0b01010101);
+  expect(ord($memory->data[43]))->not()->toBe(0b10101010);
+  expect(ord($memory->data[44]))->not()->toBe(0b11111111);
+  expect(ord($memory->data[45]))->not()->toBe(0b11111111);
 })->with([
   'module' => fn() => wat2module(<<<WAT
     (module

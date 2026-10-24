@@ -2,10 +2,8 @@
 
 namespace Oatmael\WasmPhp\Instruction;
 
-use Exception;
 use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Type\F32;
-use Oatmael\WasmPhp\Type\I32;
 
 class F32ConvertI32S implements InstructionInterface {
     public static function fromInput(string $input, int &$offset): InstructionInterface {
@@ -13,12 +11,6 @@ class F32ConvertI32S implements InstructionInterface {
     }
 
     public function execute(array &$stack, array &$call_stack, Store $store) {
-        $target = array_pop($stack);
-        if (!($target instanceof I32)) {
-            throw new Exception('Invalid operand types for f32.convert_i32_s');
-        }
-
-        $value = $target->getValue();
-        array_push($stack, new F32((float)$value));
+        $stack[] = new F32(array_pop($stack)->getValue());
     }
 }

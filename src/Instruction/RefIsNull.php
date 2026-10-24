@@ -2,8 +2,9 @@
 
 namespace Oatmael\WasmPhp\Instruction;
 
-use Exception;
 use Oatmael\WasmPhp\Execution\Store;
+use Oatmael\WasmPhp\Type\I32;
+use Oatmael\WasmPhp\Type\NullRef;
 
 class RefIsNull implements InstructionInterface {
     public static function fromInput(string $input, int &$offset): InstructionInterface {
@@ -11,6 +12,6 @@ class RefIsNull implements InstructionInterface {
     }
 
     public function execute(array &$stack, array &$call_stack, Store $store) {
-        throw new Exception('Not implemented: ref.is_null opcode');
+        $stack[] = new I32(array_pop($stack) instanceof NullRef ? 1 : 0);
     }
 }

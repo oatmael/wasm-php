@@ -2,9 +2,10 @@
 
 namespace Oatmael\WasmPhp\Instruction\Extension;
 
-use Exception;
 use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Instruction\InstructionInterface;
+use Oatmael\WasmPhp\Type\I32;
+use Oatmael\WasmPhp\Util\Floats;
 
 class I32TruncSatF32U implements InstructionInterface {
     public static function fromInput(string $input, int &$offset): InstructionInterface {
@@ -12,6 +13,6 @@ class I32TruncSatF32U implements InstructionInterface {
     }
 
     public function execute(array &$stack, array &$call_stack, Store $store) {
-        throw new Exception('Not implemented: i32.trunc_sat_f32_u opcode');
+        $stack[] = new I32(Floats::toIntSaturated(array_pop($stack)->value, 32, signed: false));
     }
 }

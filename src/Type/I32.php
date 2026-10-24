@@ -10,11 +10,6 @@ class I32 implements ValueInterface {
     {
     }
 
-    public function getUSize(): int
-    {
-        return 4;
-    }
-
     public function getValue()
     {
         if ($this->value & 0x80000000) {

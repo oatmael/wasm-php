@@ -2,8 +2,8 @@
 
 namespace Oatmael\WasmPhp\Instruction;
 
-use Exception;
 use Oatmael\WasmPhp\Execution\Store;
+use Oatmael\WasmPhp\Type\F64;
 
 class F64ReinterpretI64 implements InstructionInterface {
     public static function fromInput(string $input, int &$offset): InstructionInterface {
@@ -11,6 +11,6 @@ class F64ReinterpretI64 implements InstructionInterface {
     }
 
     public function execute(array &$stack, array &$call_stack, Store $store) {
-        throw new Exception('Not implemented: f64.reinterpret_i64 opcode');
+        $stack[] = F64::fromBits(array_pop($stack)->value);
     }
 }

@@ -11,6 +11,8 @@ class ControlStackEntry
         public int $stack_height,
         // Number of values a branch to this label carries (results for blocks, params for loops)
         public int $arity,
+        // The catch clauses of a try_table, which handle exceptions thrown while this label is on the stack
+        public array $catches = [],
     )
     {
     }

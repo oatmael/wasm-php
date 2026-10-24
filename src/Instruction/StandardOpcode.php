@@ -9,7 +9,10 @@ enum StandardOpcode: int {
     case loop                   = 0x03;
     case if                     = 0x04;
     case else                   = 0x05;
-    // 0x06 -> 0x0a reserved
+    // 0x06 -> 0x07 are the legacy exception handling instructions, which aren't supported
+    case throw                  = 0x08;
+    // 0x09 is legacy rethrow
+    case throw_ref              = 0x0a;
     case end                    = 0x0b;
     case br                     = 0x0c;
     case br_if                  = 0x0d;
@@ -17,11 +20,16 @@ enum StandardOpcode: int {
     case return                 = 0x0f;
     case call                   = 0x10;
     case call_indirect          = 0x11;
-    // 0x12 -> 0x19 reserved
+    case return_call            = 0x12;
+    case return_call_indirect   = 0x13;
+    case call_ref               = 0x14;
+    case return_call_ref        = 0x15;
+    // 0x16 -> 0x19 reserved, or legacy exception handling
     case drop                   = 0x1a;
     case select                 = 0x1b;
     case select_t               = 0x1c;
-    // 0x1d -> 0x1f reserved
+    // 0x1d -> 0x1e reserved
+    case try_table              = 0x1f;
     case local_get              = 0x20;
     case local_set              = 0x21;
     case local_tee              = 0x22;
@@ -191,5 +199,9 @@ enum StandardOpcode: int {
     case ref_null               = 0xd0;
     case ref_is_null            = 0xd1;
     case ref_func               = 0xd2;
-    // 0xd3 -> 0xfb reserved
+    case ref_eq                 = 0xd3;
+    case ref_as_non_null        = 0xd4;
+    case br_on_null             = 0xd5;
+    case br_on_non_null         = 0xd6;
+    // 0xd7 -> 0xfa reserved, 0xfb -> 0xfd are prefixes
 }

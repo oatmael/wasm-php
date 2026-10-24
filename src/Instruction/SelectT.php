@@ -2,23 +2,20 @@
 
 namespace Oatmael\WasmPhp\Instruction;
 
-use Exception;
 use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Util\WasmReader;
 
-class SelectT implements InstructionInterface {
+// select with explicit operand types, which are only needed for validation
+class SelectT extends Select {
     public function __construct(public readonly array $types) {}
 
     public static function fromInput(string $input, int &$offset): InstructionInterface {
         $count = WasmReader::readLEB128Uint32($input, $offset);
         $types = [];
         for ($i = 0; $i < $count; $i++) {
-            $types[] = WasmReader::readUint8($input, $offset);
+            $types[] = WasmReader::readValueType($input, $offset);
         }
-        return new self($types);
-    }
 
-    public function execute(array &$stack, array &$call_stack, Store $store) {
-        throw new Exception('Not implemented: select_t opcode');
+        return new self($types);
     }
 }

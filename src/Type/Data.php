@@ -2,12 +2,15 @@
 
 namespace Oatmael\WasmPhp\Type;
 
-class Data {
+use Oatmael\WasmPhp\Util\SegmentMode;
 
+class Data {
     public function __construct(
-        public readonly int $memory_idx,
-        public readonly int $offset,
-        public readonly array $init
+        public readonly SegmentMode $mode,
+        public readonly string $init,
+        // Where active segments are copied to: a memory index and a constant expression for the offset
+        public readonly int $memory_idx = 0,
+        public readonly array $offset = [],
     )
     {
     }

@@ -2,7 +2,6 @@
 
 namespace Oatmael\WasmPhp\Instruction\Extension;
 
-use Exception;
 use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Instruction\InstructionInterface;
 use Oatmael\WasmPhp\Util\WasmReader;
@@ -23,6 +22,9 @@ class TableInit implements InstructionInterface
 
     public function execute(array &$stack, array &$call_stack, Store $store)
     {
-        throw new Exception('Not implemented: table.init opcode');
+        $table = $store->tables[$this->table_idx];
+        $count = array_pop($stack)->value & 0xFFFFFFFF;
+        $src = array_pop($stack)->value & 0xFFFFFFFF;
+        $store->initTable($table, $this->elem_idx, $table->operand(array_pop($stack)), $src, $count);
     }
 }

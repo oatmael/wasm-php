@@ -66,7 +66,7 @@ test('passes value wrappers through', function () {
 
 test('injects memory and the store', function () {
     $module = importModule('i32', 'i32', '(i32.const 0)', '(memory 1) (data (i32.const 0) "\2a")');
-    $module->setImport('env', 'f', fn (Store $store, int $address, Memory $memory) => $memory->data[$address]);
+    $module->setImport('env', 'f', fn (Store $store, int $address, Memory $memory) => ord($memory->data[$address]));
 
     expect($module->execute('call', [])[0]->getValue())->toBe(42);
 });
@@ -147,7 +147,7 @@ test('rejects out of bounds strings', function () {
     $module->setImport('env', 'f', fn (string $value) => null);
 
     $module->execute('call', []);
-})->throws(Exception::class, 'Out of bounds memory access');
+})->throws(Exception::class, 'out of bounds memory access');
 
 test('rejects mismatched signatures on registration', function (string $params, Closure $func, string $message) {
     expect(fn () => importModule($params, '')->setImport('env', 'f', $func))

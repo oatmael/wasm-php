@@ -2,9 +2,8 @@
 
 namespace Tests\Feature\StandardOpcode;
 
-use ArithmeticError;
-use DivisionByZeroError;
 use Oatmael\WasmPhp\Exception\BadIntegerCastException;
+use Oatmael\WasmPhp\Exception\TrapException;
 use Oatmael\WasmPhp\Module;
 use Oatmael\WasmPhp\Type\F32;
 use Oatmael\WasmPhp\Type\F64;
@@ -97,8 +96,8 @@ test('i64_ctz', function (int $value, int $expected) {
 test('i64_div_s', function () {
   expect(runI64('i64.div_s', [7, 2]))->toBe(3);
   expect(runI64('i64.div_s', [-7, 2]))->toBe(-3);
-  expect(fn () => runI64('i64.div_s', [1, 0]))->toThrow(DivisionByZeroError::class);
-  expect(fn () => runI64('i64.div_s', [PHP_INT_MIN, -1]))->toThrow(ArithmeticError::class);
+  expect(fn () => runI64('i64.div_s', [1, 0]))->toThrow(TrapException::class, 'integer divide by zero');
+  expect(fn () => runI64('i64.div_s', [PHP_INT_MIN, -1]))->toThrow(TrapException::class, 'integer overflow');
 });
 
 test('i64_div_u', function () {
@@ -106,7 +105,7 @@ test('i64_div_u', function () {
   expect(runI64('i64.div_u', [-1, 2]))->toBe(PHP_INT_MAX);
   expect(runI64('i64.div_u', [-1, -1]))->toBe(1);
   expect(runI64('i64.div_u', [-2, -1]))->toBe(0);
-  expect(fn () => runI64('i64.div_u', [1, 0]))->toThrow(DivisionByZeroError::class);
+  expect(fn () => runI64('i64.div_u', [1, 0]))->toThrow(TrapException::class, 'integer divide by zero');
 });
 
 test('i64_eq', function () {
@@ -182,7 +181,7 @@ test('i64_load', function () {
   [$ret] = runI64Memory('(i64.store (i32.const 8) (i64.const -2)) (i64.load (i32.const 8))', 'i64');
   expect($ret[0]->getValue())->toBe(-2);
 
-  expect(fn () => runI64Memory('(i64.load (i32.const 65535))', 'i64'))->toThrow(\Exception::class, 'Out of bounds memory access');
+  expect(fn () => runI64Memory('(i64.load (i32.const 65535))', 'i64'))->toThrow(\Exception::class, 'out of bounds memory access');
 });
 
 test('i64_load16_s', function () {
@@ -265,14 +264,14 @@ test('i64_rem_s', function () {
   expect(runI64('i64.rem_s', [-7, 2]))->toBe(-1);
   expect(runI64('i64.rem_s', [7, -2]))->toBe(1);
   expect(runI64('i64.rem_s', [PHP_INT_MIN, -1]))->toBe(0);
-  expect(fn () => runI64('i64.rem_s', [1, 0]))->toThrow(DivisionByZeroError::class);
+  expect(fn () => runI64('i64.rem_s', [1, 0]))->toThrow(TrapException::class, 'integer divide by zero');
 });
 
 test('i64_rem_u', function () {
   expect(runI64('i64.rem_u', [7, 3]))->toBe(1);
   // 2^64 - 1 = 18446744073709551615
   expect(runI64('i64.rem_u', [-1, 10]))->toBe(5);
-  expect(fn () => runI64('i64.rem_u', [1, 0]))->toThrow(DivisionByZeroError::class);
+  expect(fn () => runI64('i64.rem_u', [1, 0]))->toThrow(TrapException::class, 'integer divide by zero');
 });
 
 test('i64_rotl', function () {
@@ -308,22 +307,22 @@ test('i64_shr_u', function () {
 
 test('i64_store', function () {
   [, $memory] = runI64Memory('(i64.store (i32.const 0) (i64.const 0x0102030405060708))');
-  expect(array_slice($memory->data, 0, 9))->toBe([8, 7, 6, 5, 4, 3, 2, 1, 0]);
+  expect(array_values(unpack("C*", $memory->read(0, 9))))->toBe([8, 7, 6, 5, 4, 3, 2, 1, 0]);
 });
 
 test('i64_store16', function () {
   [, $memory] = runI64Memory('(i64.store16 (i32.const 0) (i64.const 0x0102030405060708))');
-  expect(array_slice($memory->data, 0, 3))->toBe([8, 7, 0]);
+  expect(array_values(unpack("C*", $memory->read(0, 3))))->toBe([8, 7, 0]);
 });
 
 test('i64_store32', function () {
   [, $memory] = runI64Memory('(i64.store32 (i32.const 0) (i64.const 0x0102030405060708))');
-  expect(array_slice($memory->data, 0, 5))->toBe([8, 7, 6, 5, 0]);
+  expect(array_values(unpack("C*", $memory->read(0, 5))))->toBe([8, 7, 6, 5, 0]);
 });
 
 test('i64_store8', function () {
   [, $memory] = runI64Memory('(i64.store8 offset=1 (i32.const 0) (i64.const -1))');
-  expect(array_slice($memory->data, 0, 3))->toBe([0, 0xFF, 0]);
+  expect(array_values(unpack("C*", $memory->read(0, 3))))->toBe([0, 0xFF, 0]);
 });
 
 test('i64_sub', function (array $args, int $expected) {
