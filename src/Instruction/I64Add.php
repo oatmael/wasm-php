@@ -21,7 +21,6 @@ class I64Add implements InstructionInterface
             throw new Exception('Invalid stack params for i64.add opcode');
         }
 
-        $result = $left->value + $right->value;
-        array_push($stack, is_int($result) ? new I64($result) : I64::fromBigInteger($left->toBigInteger()->plus($right->value)));
+        array_push($stack, new I64(I64::add($left->value, $right->value)));
     }
 }

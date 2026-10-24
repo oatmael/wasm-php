@@ -2,25 +2,22 @@
 
 namespace Oatmael\WasmPhp\Instruction\Simd;
 
-use Exception;
 use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Instruction\InstructionInterface;
+use Oatmael\WasmPhp\Type\I32;
+use Oatmael\WasmPhp\Util\Shape;
 use Oatmael\WasmPhp\Util\WasmReader;
 
-class I16x8ExtractLaneU implements InstructionInterface
-{
-  public function __construct(
-    public readonly int $lane,
-  ) {}
+class I16x8ExtractLaneU implements InstructionInterface {
+    public function __construct(
+        public readonly int $lane,
+    ) {}
 
-  public static function fromInput(string $input, int &$offset): InstructionInterface
-  {
-    $lane = WasmReader::readUint8($input, $offset);
-    return new self($lane);
-  }
+    public static function fromInput(string $input, int &$offset): InstructionInterface {
+        return new self(WasmReader::readUint8($input, $offset));
+    }
 
-  public function execute(array &$stack, array &$call_stack, Store $store)
-  {
-    throw new Exception('Not implemented: i16x8.extract_lane_u opcode');
-  }
+    public function execute(array &$stack, array &$call_stack, Store $store) {
+        $stack[] = new I32(array_pop($stack)->lanes(Shape::I16x8)[$this->lane]);
+    }
 }

@@ -21,7 +21,6 @@ class I64Sub implements InstructionInterface
             throw new Exception('Invalid stack params for i64.sub opcode');
         }
 
-        $result = $left->value - $right->value;
-        array_push($stack, is_int($result) ? new I64($result) : I64::fromBigInteger($left->toBigInteger()->minus($right->value)));
+        array_push($stack, new I64(I64::sub($left->value, $right->value)));
     }
 }

@@ -2,9 +2,10 @@
 
 namespace Oatmael\WasmPhp\Instruction\Simd;
 
-use Exception;
 use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Instruction\InstructionInterface;
+use Oatmael\WasmPhp\Type\V128;
+use Oatmael\WasmPhp\Util\Shape;
 
 class I32x4Abs implements InstructionInterface {
     public static function fromInput(string $input, int &$offset): InstructionInterface {
@@ -12,6 +13,6 @@ class I32x4Abs implements InstructionInterface {
     }
 
     public function execute(array &$stack, array &$call_stack, Store $store) {
-        throw new Exception('Not implemented: i32x4.abs opcode');
+        $stack[] = V128::fromLanes(Shape::I32x4, array_map(static fn ($a) => abs($a), array_pop($stack)->lanes(Shape::I32x4, signed: true)));
     }
 }

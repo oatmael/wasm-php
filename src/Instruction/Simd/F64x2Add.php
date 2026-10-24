@@ -2,9 +2,10 @@
 
 namespace Oatmael\WasmPhp\Instruction\Simd;
 
-use Exception;
 use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Instruction\InstructionInterface;
+use Oatmael\WasmPhp\Type\V128;
+use Oatmael\WasmPhp\Util\Shape;
 
 class F64x2Add implements InstructionInterface {
     public static function fromInput(string $input, int &$offset): InstructionInterface {
@@ -12,6 +13,8 @@ class F64x2Add implements InstructionInterface {
     }
 
     public function execute(array &$stack, array &$call_stack, Store $store) {
-        throw new Exception('Not implemented: f64x2.add opcode');
+        $right = array_pop($stack)->lanes(Shape::F64x2);
+        $left = array_pop($stack)->lanes(Shape::F64x2);
+        $stack[] = V128::fromLanes(Shape::F64x2, array_map(static fn ($a, $b) => $a + $b, $left, $right));
     }
 }

@@ -1,6 +1,8 @@
 <?php
 
+use Oatmael\WasmPhp\Type\V128;
 use Oatmael\WasmPhp\Type\ValueInterface;
+use Oatmael\WasmPhp\Util\Shape;
 use Oatmael\WasmPhp\Util\WasmReader;
 
 function compileWat($wat)
@@ -47,4 +49,15 @@ function wasmOp(string $instruction, array $args = [], string $result = '', stri
         WAT);
 
     return $module->execute('f', $args)[0] ?? null;
+}
+
+function v128(Shape $shape, array $lanes): V128
+{
+    return V128::fromLanes($shape, $lanes);
+}
+
+// Executes a SIMD instruction and returns the lanes of its v128 result. Integer lanes are signed unless $signed is false.
+function simdOp(string $instruction, array $args, Shape $shape, bool $signed = true, string $module_fields = ''): array
+{
+    return wasmOp($instruction, $args, 'v128', $module_fields)->lanes($shape, $signed);
 }

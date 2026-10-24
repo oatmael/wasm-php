@@ -2,9 +2,10 @@
 
 namespace Oatmael\WasmPhp\Instruction\Simd;
 
-use Exception;
 use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Instruction\InstructionInterface;
+use Oatmael\WasmPhp\Type\I32;
+use Oatmael\WasmPhp\Util\Shape;
 
 class I64x2AllTrue implements InstructionInterface {
     public static function fromInput(string $input, int &$offset): InstructionInterface {
@@ -12,6 +13,6 @@ class I64x2AllTrue implements InstructionInterface {
     }
 
     public function execute(array &$stack, array &$call_stack, Store $store) {
-        throw new Exception('Not implemented: i64x2.all_true opcode');
+        $stack[] = new I32(in_array(0, array_pop($stack)->lanes(Shape::I64x2), true) ? 0 : 1);
     }
 }
