@@ -1,6 +1,7 @@
 composer.phar
 /vendor/
 /tools/
+.direnv/
 .DS_Store
 .idea/
 *.cache

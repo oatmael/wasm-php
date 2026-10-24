@@ -13,26 +13,16 @@
             "email": "jaronharrison1605@gmail.com"
         }
     ],
+    "require": {
+        "php": "^8.5",
+        "brick/math": "^1.0"
+    },
     "require-dev": {
-        "pestphp/pest": "^3.7"
+        "pestphp/pest": "^4.0"
     },
     "config": {
         "allow-plugins": {
             "pestphp/pest-plugin": true
         }
-    },
-    "require": {
-        "php": "^8.4"
-    },
-    "scripts": {
-        "post-install-cmd": [
-            "@setup-wabt"
-        ],
-        "setup-wabt": "php scripts/setup-wabt.php"
-    },
-    "bin": [
-        "tools/wat2wasm",
-        "tools/wasm2wat",
-        "tools/wasm-objdump"
-    ]
+    }
 }
