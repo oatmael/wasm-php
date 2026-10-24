@@ -5,10 +5,7 @@ namespace Oatmael\WasmPhp\Instruction\Simd;
 use Exception;
 use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Instruction\InstructionInterface;
-use Oatmael\WasmPhp\Instruction\SimdOpcode;
-use Oatmael\WasmPhp\Instruction\Opcode;
 
-#[Opcode(SimdOpcode::i32x4_extadd_pairwise_i16x8_u)]
 class I32x4ExtaddPairwiseI16x8U implements InstructionInterface {
     public static function fromInput(string $input, int &$offset): InstructionInterface {
         return new self();

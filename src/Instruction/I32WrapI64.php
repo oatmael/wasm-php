@@ -7,7 +7,6 @@ use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Type\I32;
 use Oatmael\WasmPhp\Type\I64;
 
-#[Opcode(StandardOpcode::i32_wrap_i64)]
 class I32WrapI64 implements InstructionInterface {
     public static function fromInput(string $input, int &$offset): InstructionInterface {
         return new self();

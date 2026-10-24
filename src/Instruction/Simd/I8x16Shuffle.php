@@ -5,11 +5,8 @@ namespace Oatmael\WasmPhp\Instruction\Simd;
 use Exception;
 use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Instruction\InstructionInterface;
-use Oatmael\WasmPhp\Instruction\Opcode;
-use Oatmael\WasmPhp\Instruction\SimdOpcode;
 use Oatmael\WasmPhp\Util\WasmReader;
 
-#[Opcode(SimdOpcode::i8x16_shuffle)]
 class I8x16Shuffle implements InstructionInterface
 {
   public function __construct(

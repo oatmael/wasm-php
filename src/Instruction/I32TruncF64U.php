@@ -8,7 +8,6 @@ use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Type\F64;
 use Oatmael\WasmPhp\Type\I32;
 
-#[Opcode(StandardOpcode::i32_trunc_f64_u)]
 class I32TruncF64U implements InstructionInterface {
     public static function fromInput(string $input, int &$offset): InstructionInterface {
         return new self();

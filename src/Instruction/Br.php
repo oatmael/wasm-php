@@ -8,7 +8,6 @@ use Oatmael\WasmPhp\Execution\Frame;
 use Oatmael\WasmPhp\Execution\ControlStackEntry;
 use Oatmael\WasmPhp\Util\WasmReader;
 
-#[Opcode(StandardOpcode::br)]
 class Br implements InstructionInterface
 {
   public function __construct(

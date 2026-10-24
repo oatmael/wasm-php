@@ -7,7 +7,6 @@ use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Type\F32;
 use Oatmael\WasmPhp\Type\I32;
 
-#[Opcode(StandardOpcode::f32_convert_i32_u)]
 class F32ConvertI32U implements InstructionInterface {
     public static function fromInput(string $input, int &$offset): InstructionInterface {
         return new self();

@@ -5,7 +5,6 @@ namespace Oatmael\WasmPhp\Instruction;
 use Exception;
 use Oatmael\WasmPhp\Execution\Store;
 
-#[Opcode(StandardOpcode::i64_reinterpret_f64)]
 class I64ReinterpretF64 implements InstructionInterface {
     public static function fromInput(string $input, int &$offset): InstructionInterface {
         return new self();

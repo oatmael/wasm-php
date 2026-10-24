@@ -5,7 +5,6 @@ namespace Oatmael\WasmPhp\Instruction;
 use Exception;
 use Oatmael\WasmPhp\Execution\Store;
 
-#[Opcode(StandardOpcode::f64_sqrt)]
 class F64Sqrt implements InstructionInterface {
     public static function fromInput(string $input, int &$offset): InstructionInterface {
         return new self();

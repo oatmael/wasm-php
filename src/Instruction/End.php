@@ -6,7 +6,6 @@ use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Execution\Frame;
 use Oatmael\WasmPhp\Execution\ControlStackEntry;
 
-#[Opcode(StandardOpcode::end)]
 class End implements InstructionInterface {
     public static function fromInput(string $input, int &$offset): InstructionInterface
     {

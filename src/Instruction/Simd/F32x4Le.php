@@ -5,10 +5,7 @@ namespace Oatmael\WasmPhp\Instruction\Simd;
 use Exception;
 use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Instruction\InstructionInterface;
-use Oatmael\WasmPhp\Instruction\Opcode;
-use Oatmael\WasmPhp\Instruction\SimdOpcode;
 
-#[Opcode(SimdOpcode::f32x4_le)]
 class F32x4Le implements InstructionInterface
 {
   public static function fromInput(string $input, int &$offset): InstructionInterface

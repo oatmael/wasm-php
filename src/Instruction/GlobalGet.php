@@ -5,7 +5,6 @@ namespace Oatmael\WasmPhp\Instruction;
 use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Util\WasmReader;
 
-#[Opcode(StandardOpcode::global_get)]
 class GlobalGet implements InstructionInterface {
     public function __construct(
         public readonly int $global_idx,

@@ -5,7 +5,6 @@ namespace Oatmael\WasmPhp\Instruction;
 use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Exception\UnreachableException;
 
-#[Opcode(StandardOpcode::unreachable)]
 class Unreachable implements InstructionInterface
 {
   public static function fromInput(string $input, int &$offset): InstructionInterface

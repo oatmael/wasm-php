@@ -6,7 +6,6 @@ use Exception;
 use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Util\WasmReader;
 
-#[Opcode(StandardOpcode::f64_load)]
 class F64Load implements InstructionInterface
 {
   public function __construct(
@@ -16,9 +15,9 @@ class F64Load implements InstructionInterface
 
   public static function fromInput(string $input, int &$offset): InstructionInterface
   {
-    $align = WasmReader::readUint32($input, $offset);
-    $offset = WasmReader::readUint32($input, $offset);
-    return new self($align, $offset);
+    $align = WasmReader::readLEB128Uint32($input, $offset);
+    $mem_offset = WasmReader::readLEB128Uint32($input, $offset);
+    return new self($align, $mem_offset);
   }
 
   public function execute(array &$stack, array &$call_stack, Store $store)

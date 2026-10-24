@@ -6,7 +6,6 @@ use Exception;
 use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Type\I32;
 
-#[Opcode(StandardOpcode::i32_clz)]
 class I32Clz implements InstructionInterface
 {
   protected const DEBRUIJIN_32 = [

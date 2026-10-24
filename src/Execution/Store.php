@@ -5,6 +5,7 @@ namespace Oatmael\WasmPhp\Execution;
 use Exception;
 use Oatmael\WasmPhp\Type\F32;
 use Oatmael\WasmPhp\Type\F64;
+use Oatmael\WasmPhp\Type\Func;
 use Oatmael\WasmPhp\Type\I32;
 use Oatmael\WasmPhp\Type\I64;
 use Oatmael\WasmPhp\Type\Data;
@@ -60,6 +61,16 @@ class Store {
     public function setImport(string $module, string $field, callable $func): self {
         $this->import_callables[$module][$field] = $func;
         return $this;
+    }
+
+    // A block type is either empty, a single result type, or an index into the type section
+    public function resolveBlockType(ValueType|int $block_type): Func
+    {
+        return match (true) {
+            is_int($block_type)            => $this->types[$block_type] ?? throw new Exception('Invalid block type index: ' . $block_type),
+            $block_type === ValueType::VOID => new Func(params: [], results: []),
+            default                        => new Func(params: [], results: [$block_type]),
+        };
     }
 
     public function pushFrame(array &$stack, array &$call_stack, int $function_idx) {

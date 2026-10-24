@@ -6,14 +6,13 @@ use Exception;
 use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Util\WasmReader;
 
-#[Opcode(StandardOpcode::i64_const)]
 class I64Const implements InstructionInterface {
     public function __construct(
         public readonly int $value,
     ) {}
 
     public static function fromInput(string $input, int &$offset): InstructionInterface {
-        $value = WasmReader::readLEB128int32($input, $offset);
+        $value = WasmReader::readLEB128Int64($input, $offset);
         return new self($value);
     }
 

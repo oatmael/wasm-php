@@ -5,7 +5,6 @@ namespace Oatmael\WasmPhp\Instruction;
 use Exception;
 use Oatmael\WasmPhp\Execution\Store;
 
-#[Opcode(StandardOpcode::i64_le_u)]
 class I64LeU implements InstructionInterface
 {
     public static function fromInput(string $input, int &$offset): InstructionInterface

@@ -7,7 +7,6 @@ use Oatmael\WasmPhp\Type\I32;
 use Oatmael\WasmPhp\Type\Memory;
 use Oatmael\WasmPhp\Util\WasmReader;
 
-#[Opcode(StandardOpcode::i32_load)]
 class I32Load implements InstructionInterface
 {
     public function __construct(

@@ -3,7 +3,14 @@
 namespace Oatmael\WasmPhp\Util;
 
 use Exception;
-use Oatmael\WasmPhp\Instruction\Opcode;
+use Oatmael\WasmPhp\Instruction\End;
+use Oatmael\WasmPhp\Instruction\ExtensionOpcode;
+use Oatmael\WasmPhp\Instruction\F32Const;
+use Oatmael\WasmPhp\Instruction\F64Const;
+use Oatmael\WasmPhp\Instruction\I32Const;
+use Oatmael\WasmPhp\Instruction\I64Const;
+use Oatmael\WasmPhp\Instruction\InstructionInterface;
+use Oatmael\WasmPhp\Instruction\SimdOpcode;
 use Oatmael\WasmPhp\Instruction\StandardOpcode;
 use Oatmael\WasmPhp\Module;
 use Oatmael\WasmPhp\Type\Code;
@@ -21,60 +28,18 @@ use Oatmael\WasmPhp\Type\Import;
 use Oatmael\WasmPhp\Type\Local;
 use Oatmael\WasmPhp\Type\Memory;
 use Oatmael\WasmPhp\Type\Table;
-
-enum ValueType: int {
-    case I32       = 0x7F;
-    case I64       = 0x7E;
-    case F32       = 0x7D;
-    case F64       = 0x7C;
-    case VEC       = 0x7B;
-    case FUNCREF   = 0x70;
-    case EXTERNREF = 0x6F;
-    case VOID      = 0x40;
-}
-
-enum Type: int {
-    case FUNCTION = 0x60;
-}
-
-enum Section: int {
-    // https://webassembly.github.io/spec/core/binary/modules.html#sections
-    case CUSTOM     = 0x00;
-    case TYPE       = 0x01;
-    case IMPORT     = 0x02;
-    case FUNCTION   = 0x03;
-    case TABLE      = 0x04;
-    case MEMORY     = 0x05;
-    case GLOBAL     = 0x06;
-    case EXPORT     = 0x07;
-    case START      = 0x08;
-    case ELEMENT    = 0x09;
-    case CODE       = 0x0a;
-    case DATA       = 0x0b;
-    case DATA_COUNT = 0x0c;
-}
-
-enum ImportType: int {
-    case FUNCTION = 0x00;
-    case TABLE    = 0x01;
-    case MEMORY   = 0x02;
-    case GLOBAL   = 0x03;
-}
-enum ExportType: int {
-    case FUNCTION = 0x00;
-    case TABLE    = 0x01;
-    case MEMORY   = 0x02;
-    case GLOBAL   = 0x03;
-}
-
-enum GlobalMutability: int {
-    case Immutable = 0x00;
-    case Mutable   = 0x01;
-}
+use Oatmael\WasmPhp\Type\ValueInterface;
 
 class WasmReader {
 
     public const WASM_BINARY_MAGIC = "\0asm";
+
+    // Instruction classes are named after their opcode (i32_add -> I32Add), except where that would be a reserved word
+    protected const RESERVED_INSTRUCTION_NAMES = [
+        'if'     => 'IIf',
+        'else'   => 'IElse',
+        'return' => 'IReturn',
+    ];
 
     protected int $version;
     protected array $types;
@@ -92,11 +57,7 @@ class WasmReader {
 
     protected string $wasm;
 
-    public function __construct()
-    {
-    }
-
-    public function read(string $wasm)
+    public function read(string $wasm): Module
     {
         $this->version = 0;
         $this->start = null;
@@ -110,12 +71,13 @@ class WasmReader {
         $this->elements = [];
         $this->codes = [];
         $this->data = [];
+        $this->data_count = null;
 
-        $this->wasm = bin2hex($wasm);
+        $this->wasm = $wasm;
 
-        $offset = self::readHeader();
+        $offset = $this->readHeader();
         while ($offset < strlen($this->wasm)) {
-            $offset = $this->readSection($offset);
+            $this->readSection($offset);
         }
 
         return new Module(
@@ -135,16 +97,13 @@ class WasmReader {
     }
 
     // https://webassembly.github.io/spec/core/binary/modules.html#binary-module
-    protected function readHeader() {
-        // Magic binary header to represent the file type
-        $magic = bin2hex(pack('a4', self::WASM_BINARY_MAGIC));
-
-        $header = substr($this->wasm, 0, strlen($magic));
-        if ($header !== $magic) {
+    protected function readHeader(): int
+    {
+        if (!str_starts_with($this->wasm, self::WASM_BINARY_MAGIC)) {
             throw new Exception('Invalid WASM');
         }
 
-        $offset = strlen($magic);
+        $offset = strlen(self::WASM_BINARY_MAGIC);
         $version = self::readUint32($this->wasm, $offset);
         if ($version !== 1) {
             throw new Exception('Unsupported WASM version');
@@ -155,476 +114,361 @@ class WasmReader {
         return $offset;
     }
 
-    // https://webassembly.github.io/spec/core/binary/modules.html
-    protected function readSection(int $offset) {
-        $type = Section::from(self::readUint8($this->wasm, $offset));
-        // Section size is measured as a uint32 of the number of bytes the section takes up
-        // * 2 here puts this number in the number of hex chars (so we can substr the input appropriately)
-        $section_size = self::readLEB128Uint32($this->wasm, $offset) * 2;
+    // https://webassembly.github.io/spec/core/binary/modules.html#sections
+    protected function readSection(int &$offset): void
+    {
+        $section_id = self::readUint8($this->wasm, $offset);
+        $section = Section::tryFrom($section_id) ?? throw new Exception('Invalid section id: ' . $section_id);
+        $section_size = self::readLEB128Uint32($this->wasm, $offset);
+        $section_end = $offset + $section_size;
 
-        switch ($type) {
-            case Section::CUSTOM:
-                // https://webassembly.github.io/spec/core/binary/modules.html#binary-customsec
-                // This section is skipped. Not really sure how you'd implement it
-                break;
-            case Section::TYPE:
-                $types = $this->readTypeSection($offset, $section_size);
-                $this->types = [...$this->types, ...$types];
-                break;
-            case Section::IMPORT:
-                $imports = $this->readImportSection($offset, $section_size);
-                $this->imports = [...$this->imports, ...$imports];
-                break;
-            case Section::FUNCTION:
-                $funcs = $this->readFunctionSection($offset, $section_size);
-                $this->functions = [...$this->functions, ...$funcs];
-                break;
-            case Section::TABLE:
-                $tables = $this->readTableSection($offset, $section_size);
-                $this->tables = [...$this->tables, ...$tables];
-                break;
-            case Section::MEMORY:
-                $memory = $this->readMemorySection($offset, $section_size);
-                $this->memory = [...$this->memory, ...$memory];
-                break;
-            case Section::GLOBAL:
-                $globals = $this->readGlobalSection($offset, $section_size);
-                $this->globals = [...$this->globals, ...$globals];
-                break;
-            case Section::EXPORT:
-                $exports = $this->readExportSection($offset, $section_size);
-                $this->exports = [...$this->exports, ...$exports];
-                break;
-            case Section::START:
-                // https://webassembly.github.io/spec/core/binary/modules.html#start-section
-                $read_offset = $offset;
-                $this->start = self::readLEB128Uint32($this->wasm, $read_offset);
-                break;
-            case Section::ELEMENT:
-                $elements = $this->readElementSection($offset, $section_size);
-                $this->elements = [...$this->elements, ...$elements];
-                break;
-            case Section::CODE:
-                $codes = $this->readCodeSection($offset, $section_size);
-                $this->codes = [...$this->codes, ...$codes];
-                break;
-            case Section::DATA:
-                $data = $this->readDataSection($offset, $section_size);
-                $this->data = [...$this->data, ...$data];
-                break;
-            case Section::DATA_COUNT:
-                // https://webassembly.github.io/spec/core/binary/modules.html#data-count-section
-                $read_offset = $offset;
-                $this->data_count = self::readLEB128Uint32($this->wasm, $read_offset);
-                break;
-            default:
-                throw new Exception('Invalid section type: ' . $type);
+        match ($section) {
+            // https://webassembly.github.io/spec/core/binary/modules.html#binary-customsec
+            Section::CUSTOM     => $offset = $section_end,
+            Section::TYPE       => $this->types = $this->readVec($offset, $this->readFuncType(...)),
+            Section::IMPORT     => $this->imports = $this->readVec($offset, $this->readImport(...)),
+            Section::FUNCTION   => $this->functions = $this->readVec($offset, fn (int &$offset) => self::readLEB128Uint32($this->wasm, $offset)),
+            Section::TABLE      => $this->tables = $this->readVec($offset, $this->readTable(...)),
+            Section::MEMORY     => $this->memory = $this->readVec($offset, $this->readMemory(...)),
+            Section::GLOBAL     => $this->globals = $this->readVec($offset, $this->readGlobal(...)),
+            Section::EXPORT     => $this->exports = $this->readVec($offset, $this->readExport(...)),
+            Section::START      => $this->start = self::readLEB128Uint32($this->wasm, $offset),
+            Section::ELEMENT    => $this->elements = $this->readVec($offset, $this->readElement(...)),
+            Section::CODE       => $this->codes = $this->readVec($offset, $this->readCode(...)),
+            Section::DATA       => $this->data = $this->readVec($offset, $this->readData(...)),
+            Section::DATA_COUNT => $this->data_count = self::readLEB128Uint32($this->wasm, $offset),
+        };
+
+        if ($offset !== $section_end) {
+            throw new Exception("Malformed {$section->name} section - expected to end at byte $section_end, ended at byte $offset");
         }
-
-        return $offset + $section_size;
     }
 
-    // https://webassembly.github.io/spec/core/binary/modules.html#type-section
-    protected function readTypeSection(int $offset, int $section_size) {
-        $final = $offset + $section_size;
-
-        $vec_size = self::readLEB128Uint32($this->wasm, $offset);
-        $types = [];
-
-        $read_offset = $offset;
-        while ($read_offset < $final) {
-            if ($vec_size > 0 && count($types) > $vec_size) {
-                throw new Exception('Malformed type section - vec size overflow');
-            }
-
-            // Unused - WASM v1 only has one type
-            $current_type = Type::from(self::readUint8($this->wasm, $read_offset));
-
-            $params = [];
-            $results = [];
-
-            $num_params = self::readLEB128Uint32($this->wasm, $read_offset);
-            for ($i = 0; $i < $num_params; $i++) {
-                $params[] = ValueType::from(self::readUint8($this->wasm, $read_offset));
-            }
-
-            $num_results = self::readLEB128Uint32($this->wasm, $read_offset);
-            for ($i = 0; $i < $num_results; $i++) {
-                $results[] = ValueType::from(self::readUint8($this->wasm, $read_offset));
-            }
-
-            $types[] = new Func($params, $results);
+    // https://webassembly.github.io/spec/core/binary/conventions.html#vectors
+    protected function readVec(int &$offset, callable $read_item): array
+    {
+        $count = self::readLEB128Uint32($this->wasm, $offset);
+        $items = [];
+        for ($i = 0; $i < $count; $i++) {
+            $items[] = $read_item($offset);
         }
 
-        return $types;
+        return $items;
+    }
+
+    protected function readValueType(int &$offset): ValueType
+    {
+        $value_type = self::readUint8($this->wasm, $offset);
+        return ValueType::tryFrom($value_type) ?? throw new Exception('Invalid value type: ' . $value_type);
+    }
+
+    // https://webassembly.github.io/spec/core/binary/types.html#limits
+    protected function readLimits(int &$offset): array
+    {
+        $flags = self::readUint8($this->wasm, $offset);
+        $min = self::readLEB128Uint32($this->wasm, $offset);
+        $max = match ($flags) {
+            0x00    => null,
+            0x01    => self::readLEB128Uint32($this->wasm, $offset),
+            default => throw new Exception('Unsupported limits flags: ' . $flags),
+        };
+
+        return [$min, $max];
+    }
+
+    // Constant expressions are a single const instruction followed by end
+    // https://webassembly.github.io/spec/core/valid/instructions.html#constant-expressions
+    protected function readConstExpr(int &$offset): ValueInterface
+    {
+        $instruction = self::readInstruction($this->wasm, $offset);
+        $value = match (true) {
+            $instruction instanceof I32Const => $instruction->const,
+            $instruction instanceof I64Const => new I64($instruction->value),
+            $instruction instanceof F32Const => new F32($instruction->value),
+            $instruction instanceof F64Const => new F64($instruction->value),
+            default => throw new Exception('Unsupported constant expression: ' . $instruction::class),
+        };
+
+        if (!(self::readInstruction($this->wasm, $offset) instanceof End)) {
+            throw new Exception('Constant expression must contain a single instruction');
+        }
+
+        return $value;
+    }
+
+    // Segment offsets are an i32 constant expression, interpreted as unsigned
+    protected function readOffsetExpr(int &$offset): int
+    {
+        $value = $this->readConstExpr($offset);
+        if (!($value instanceof I32)) {
+            throw new Exception('Segment offset must be an i32 constant expression');
+        }
+
+        return $value->toUnsigned()->value;
+    }
+
+    // https://webassembly.github.io/spec/core/binary/types.html#function-types
+    protected function readFuncType(int &$offset): Func
+    {
+        // WASM v1 only has one type
+        Type::from(self::readUint8($this->wasm, $offset));
+
+        $params = $this->readVec($offset, $this->readValueType(...));
+        $results = $this->readVec($offset, $this->readValueType(...));
+
+        return new Func($params, $results);
     }
 
     // https://webassembly.github.io/spec/core/binary/modules.html#import-section
-    protected function readImportSection(int $offset, int $section_size) {
-        $final = $offset + $section_size;
-
-        $vec_size = self::readLEB128Uint32($this->wasm, $offset);
-        $imports = [];
-
-        $read_offset = $offset;
-        while ($read_offset < $final) {
-            if ($vec_size > 0 && count($imports) > $vec_size) {
-                throw new Exception('Malformed type section - vec size overflow');
-            }
-
-            $module = self::readName($this->wasm, $read_offset);
-            $field = self::readName($this->wasm, $read_offset);
-            $import_type = ImportType::from(self::readUint8($this->wasm, $read_offset));
-            $idx = self::readLEB128Uint32($this->wasm, $read_offset);
-            $imports[] = new Import($module, $field, $import_type, $idx);
+    protected function readImport(int &$offset): Import
+    {
+        $module = self::readName($this->wasm, $offset);
+        $field = self::readName($this->wasm, $offset);
+        $import_type = ImportType::from(self::readUint8($this->wasm, $offset));
+        if ($import_type !== ImportType::FUNCTION) {
+            throw new Exception("Unsupported import $module.$field - only function imports are supported, got {$import_type->name}");
         }
 
-        return $imports;
-    }
+        $idx = self::readLEB128Uint32($this->wasm, $offset);
 
-    // https://webassembly.github.io/spec/core/binary/modules.html#function-section
-    protected function readFunctionSection(int $offset, int $section_size) {
-        $final = $offset + $section_size;
-
-        $vec_size = self::readLEB128Uint32($this->wasm, $offset);
-        $funcs = [];
-
-        $read_offset = $offset;
-        while ($vec_size > 0 && $read_offset < $final) {
-            if (count($funcs) > $vec_size) {
-                throw new Exception('Malformed function section - vec size overflow');
-            }
-
-            $funcs[] = self::readLEB128Uint32($this->wasm, $read_offset);
-        }
-
-        return $funcs;
-    }
-
-    // https://webassembly.github.io/spec/core/binary/modules.html#export-section
-    protected function readExportSection(int $offset, int $section_size) {
-        $final = $offset + $section_size;
-
-        $vec_size = self::readLEB128Uint32($this->wasm, $offset);
-        $exports = [];
-
-        $read_offset = $offset;
-        while ($read_offset < $final) {
-            if ($vec_size > 0 && count($exports) > $vec_size) {
-                throw new Exception('Malformed function section - vec size overflow');
-            }
-
-            $name = self::readName($this->wasm, $read_offset);
-            $export_type = ExportType::from(self::readUint8($this->wasm, $read_offset));
-            $idx = self::readLEB128Uint32($this->wasm, $read_offset);
-            $exports[] = new Export($name, $export_type, $idx);
-        }
-
-        return $exports;
-    }
-
-    // https://webassembly.github.io/spec/core/binary/modules.html#code-section
-    protected function readCodeSection(int $offset, int $section_size) {
-        $final = $offset + $section_size;
-
-        $vec_size = self::readLEB128Uint32($this->wasm, $offset);
-        $codes = [];
-
-        $read_offset = $offset;
-        while ($read_offset < $final) {
-            if ($vec_size > 0 && count($codes) > $vec_size) {
-                throw new Exception('Malformed function section - vec size overflow');
-            }
-
-            $body_size = self::readLEB128Uint32($this->wasm, $read_offset);
-            $instructions_final = $read_offset + ($body_size * 2);
-
-            $locals_size = self::readLEB128Uint32($this->wasm, $read_offset);
-            $locals_final = $read_offset + ($locals_size * 2);
-            $locals = [];
-
-            while ($read_offset < $locals_final) {
-                if (count($locals) > $vec_size) {
-                    throw new Exception('Malformed code body - vec size overflow');
-                }
-
-                $type_count = self::readLEB128Uint32($this->wasm, $read_offset);
-                $local_type = ValueType::from(self::readUint8($this->wasm, $read_offset));
-
-                $locals[] = new Local($type_count, $local_type);
-            }
-
-            $instructions = [];
-            while ($read_offset < $instructions_final) {
-                $instructions[] = Opcode::readOpcode($this->wasm, $read_offset);
-            }
-
-            $codes[] = new Code($locals, $instructions);
-        }
-
-        return $codes;
-    }
-
-    // https://webassembly.github.io/spec/core/binary/modules.html#memory-section
-    protected function readMemorySection(int $offset, int $section_size) {
-        $final = $offset + $section_size;
-
-        $vec_size = self::readLEB128Uint32($this->wasm, $offset);
-        $memory = [];
-
-        $read_offset = $offset;
-        while ($read_offset < $final) {
-            if ($vec_size > 0 && count($memory) > $vec_size) {
-                throw new Exception('Malformed function section - vec size overflow');
-            }
-
-            $flags = self::readLEB128Uint32($this->wasm, $read_offset);
-            $min = self::readLEB128Uint32($this->wasm, $read_offset);
-            $max = match ($flags) {
-                0x00    => null,
-                default => self::readLEB128Uint32($this->wasm, $read_offset),
-            };
-
-            $memory[] = new Memory($min, $max);
-        }
-
-        return $memory;
-    }
-
-    // https://webassembly.github.io/spec/core/binary/modules.html#data-section
-    protected function readDataSection(int $offset, int $section_size) {
-        $final = $offset + $section_size;
-
-        $vec_size = self::readLEB128Uint32($this->wasm, $offset);
-        $data = [];
-
-        $read_offset = $offset;
-        while ($read_offset < $final) {
-            if ($vec_size > 0 && count($data) > $vec_size) {
-                throw new Exception('Malformed function section - vec size overflow');
-            }
-
-            $memory_idx = self::readLEB128Uint32($this->wasm, $read_offset);
-            // The opcode describes the type of const used, but it isn't actually needed
-            $opcode = StandardOpcode::from(self::readLEB128Uint32($this->wasm, $read_offset));
-            $memory_offset = self::readLEB128Uint32($this->wasm, $read_offset);
-            $end_opcode = StandardOpcode::from(self::readLEB128Uint32($this->wasm, $read_offset));
-            if ($end_opcode !== StandardOpcode::end) {
-                throw new Exception('Invalid data layout');
-            }
-
-            $data_size = self::readLEB128Uint32($this->wasm, $read_offset);
-            $data[] = new Data(
-                $memory_idx,
-                $memory_offset,
-                init: array_values(unpack("C" . $data_size, hex2bin(substr($this->wasm, $read_offset, $data_size * 2))))
-            );
-
-            $read_offset += $data_size * 2;
-        }
-
-        return $data;
+        return new Import($module, $field, $import_type, $idx);
     }
 
     // https://webassembly.github.io/spec/core/binary/modules.html#table-section
-    protected function readTableSection(int $offset, int $section_size) {
-        $final = $offset + $section_size;
+    protected function readTable(int &$offset): Table
+    {
+        $element_type = $this->readValueType($offset);
+        [$min, $max] = $this->readLimits($offset);
 
-        $vec_size = self::readLEB128Uint32($this->wasm, $offset);
-        $tables = [];
-
-        $read_offset = $offset;
-        while ($read_offset < $final) {
-            if ($vec_size > 0 && count($tables) > $vec_size) {
-                throw new Exception('Malformed function section - vec size overflow');
-            }
-
-            $element_type = ValueType::from(self::readLEB128Uint32($this->wasm, $read_offset));
-            $flags = self::readLEB128Uint32($this->wasm, $read_offset);
-            $min = self::readLEB128Uint32($this->wasm, $read_offset);
-            $max = match ($flags) {
-                0x00    => null,
-                default => self::readLEB128Uint32($this->wasm, $read_offset),
-            };
-
-            $tables[] = new Table($element_type, $min, $max);
-        }
-
-        return $tables;
+        return new Table($element_type, $min, $max);
     }
 
-    // https://webassembly.github.io/spec/core/binary/modules.html#element-section
-    protected function readElementSection(int $offset, int $section_size) {
-        $final = $offset + $section_size;
+    // https://webassembly.github.io/spec/core/binary/modules.html#memory-section
+    protected function readMemory(int &$offset): Memory
+    {
+        [$min, $max] = $this->readLimits($offset);
 
-        $vec_size = self::readLEB128Uint32($this->wasm, $offset);
-        $elements = [];
-
-        $read_offset = $offset;
-        while ($read_offset < $final) {
-            if ($vec_size > 0 && count($elements) > $vec_size) {
-                throw new Exception('Malformed function section - vec size overflow');
-            }
-
-            $table_idx = self::readLEB128Uint32($this->wasm, $read_offset);
-            // The opcode describes the type of const used, but it isn't actually needed
-            $opcode = StandardOpcode::from(self::readLEB128Uint32($this->wasm, $read_offset));
-            $table_offset = self::readLEB128Uint32($this->wasm, $read_offset);
-            $end_opcode = StandardOpcode::from(self::readLEB128Uint32($this->wasm, $read_offset));
-            if ($end_opcode !== StandardOpcode::end) {
-                throw new Exception('Invalid element layout');
-            }
-
-            $func_vec_size = self::readLEB128Uint32($this->wasm, $read_offset);
-            $function_indices = [];
-            for ($i = 0; $i < $func_vec_size; $i++) {
-                $function_indices[] = self::readLEB128Uint32($this->wasm, $read_offset);
-            }
-
-            $elements[] = new Element(
-                $table_idx,
-                $table_offset,
-                $function_indices
-            );
-        }
-
-        return $elements;
+        return new Memory($min, $max);
     }
 
     // https://webassembly.github.io/spec/core/binary/modules.html#global-section
-    protected function readGlobalSection(int $offset, int $section_size) {
-        $final = $offset + $section_size;
+    protected function readGlobal(int &$offset): GlobalImmutable|GlobalMutable
+    {
+        $value_type = $this->readValueType($offset);
+        $mutability = GlobalMutability::from(self::readUint8($this->wasm, $offset));
+        $value = $this->readConstExpr($offset);
 
-        $vec_size = self::readLEB128Uint32($this->wasm, $offset);
-        $globals = [];
+        return $mutability === GlobalMutability::Immutable ?
+            new GlobalImmutable($value_type, $value) :
+            new GlobalMutable($value_type, $value);
+    }
 
-        $read_offset = $offset;
-        while ($read_offset < $final) {
-            if ($vec_size > 0 && count($globals) > $vec_size) {
-                throw new Exception('Malformed function section - vec size overflow');
-            }
+    // https://webassembly.github.io/spec/core/binary/modules.html#export-section
+    protected function readExport(int &$offset): Export
+    {
+        $name = self::readName($this->wasm, $offset);
+        $export_type = ExportType::from(self::readUint8($this->wasm, $offset));
+        $idx = self::readLEB128Uint32($this->wasm, $offset);
 
-            $value_type = ValueType::from(self::readLEB128Uint32($this->wasm, $read_offset));
-            $mutability = GlobalMutability::from(self::readLEB128Uint32($this->wasm, $read_offset));
+        return new Export($name, $export_type, $idx);
+    }
 
-            // The opcode describes the type of const used, but it isn't actually needed
-            $opcode = StandardOpcode::from(self::readLEB128Uint32($this->wasm, $read_offset));
-            $value = match ($value_type) {
-                ValueType::I32 => new I32(self::readLEB128Uint32($this->wasm, $read_offset)),
-                ValueType::I64 => new I64(self::readLEB128Uint32($this->wasm, $read_offset)),
-                ValueType::F32 => new F32(self::readLEB128Uint32($this->wasm, $read_offset)),
-                ValueType::F64 => new F64(self::readLEB128Uint32($this->wasm, $read_offset)),
-            };
-            $end_opcode = StandardOpcode::from(self::readLEB128Uint32($this->wasm, $read_offset));
-            if ($end_opcode !== StandardOpcode::end) {
-                throw new Exception('Invalid data layout');
-            }
-
-            $global = $mutability === GlobalMutability::Immutable ?
-                new GlobalImmutable($value_type, $value) :
-                new GlobalMutable($value_type, $value);
-
-            $globals[] = $global;
+    // https://webassembly.github.io/spec/core/binary/modules.html#element-section
+    protected function readElement(int &$offset): Element
+    {
+        $flags = self::readLEB128Uint32($this->wasm, $offset);
+        if ($flags !== 0) {
+            throw new Exception('Unsupported element segment flags: ' . $flags);
         }
 
-        return $globals;
+        $table_offset = $this->readOffsetExpr($offset);
+        $function_indices = $this->readVec($offset, fn (int &$offset) => self::readLEB128Uint32($this->wasm, $offset));
+
+        return new Element(0, $table_offset, $function_indices);
+    }
+
+    // https://webassembly.github.io/spec/core/binary/modules.html#code-section
+    protected function readCode(int &$offset): Code
+    {
+        $body_size = self::readLEB128Uint32($this->wasm, $offset);
+        $body_end = $offset + $body_size;
+
+        $locals = $this->readVec($offset, function (int &$offset) {
+            $type_count = self::readLEB128Uint32($this->wasm, $offset);
+            return new Local($type_count, $this->readValueType($offset));
+        });
+
+        $instructions = [];
+        while ($offset < $body_end) {
+            $instructions[] = self::readInstruction($this->wasm, $offset);
+        }
+
+        if ($offset !== $body_end) {
+            throw new Exception('Malformed code body - instructions overran the body size');
+        }
+
+        return new Code($locals, $instructions);
+    }
+
+    // https://webassembly.github.io/spec/core/binary/modules.html#data-section
+    protected function readData(int &$offset): Data
+    {
+        $flags = self::readLEB128Uint32($this->wasm, $offset);
+        $memory_idx = match ($flags) {
+            0x00    => 0,
+            0x02    => self::readLEB128Uint32($this->wasm, $offset),
+            default => throw new Exception('Unsupported data segment flags: ' . $flags),
+        };
+
+        $memory_offset = $this->readOffsetExpr($offset);
+        $data_size = self::readLEB128Uint32($this->wasm, $offset);
+        $bytes = self::readBytes($this->wasm, $offset, $data_size);
+
+        return new Data(
+            $memory_idx,
+            $memory_offset,
+            init: array_values(unpack('C*', $bytes)),
+        );
+    }
+
+    // https://webassembly.github.io/spec/core/binary/instructions.html
+    public static function readInstruction(string $input, int &$offset): InstructionInterface
+    {
+        $byte = self::readUint8($input, $offset);
+        [$opcode, $namespace] = match ($byte) {
+            ExtensionOpcode::PREFIX => [ExtensionOpcode::tryFrom(self::readLEB128Uint32($input, $offset)), 'Extension\\'],
+            SimdOpcode::PREFIX      => [SimdOpcode::tryFrom(self::readLEB128Uint32($input, $offset)), 'Simd\\'],
+            default                 => [StandardOpcode::tryFrom($byte), ''],
+        };
+
+        if (!$opcode) {
+            throw new Exception(sprintf('Unknown opcode 0x%02x', $byte));
+        }
+
+        $class = 'Oatmael\\WasmPhp\\Instruction\\' . $namespace .
+            (self::RESERVED_INSTRUCTION_NAMES[$opcode->name] ?? str_replace('_', '', ucwords($opcode->name, '_')));
+        if (!class_exists($class)) {
+            throw new Exception('No implementation for opcode ' . $opcode->name);
+        }
+
+        return $class::fromInput($input, $offset);
+    }
+
+    // https://webassembly.github.io/spec/core/binary/instructions.html#control-instructions
+    public static function readBlockType(string $input, int &$offset): ValueType|int
+    {
+        // Encoded as an s33: non-negative values are type indices, negative values are a single byte value type (or empty)
+        $block_type = self::readSignedLEB128($input, $offset, 33);
+        if ($block_type >= 0) {
+            return $block_type;
+        }
+
+        return ValueType::tryFrom($block_type & 0x7F) ?? throw new Exception('Invalid block type: ' . $block_type);
     }
 
     public static function readName(string $input, int &$offset): string
     {
         $size = self::readLEB128Uint32($input, $offset);
-        $name_hex = substr($input, $offset, $size * 2);
-        $offset += $size * 2;
-        if (!mb_check_encoding(hex2bin($name_hex), 'UTF-8')) {
+        $name = self::readBytes($input, $offset, $size);
+        if (!mb_check_encoding($name, 'UTF-8')) {
             throw new Exception('Invalid UTF-8 encoded string');
         }
 
-        return hex2bin($name_hex);
+        return $name;
     }
 
-    public static function readUint8(string $input, int &$offset) {
-        $result = unpack('C', hex2bin(substr($input, $offset, 2)));
-        $offset += 2;
-        return $result[1];
-    }
-
-    public static function readUint32(string $input, int &$offset) {
-        $result = unpack('V', hex2bin(substr($input, $offset, 8)));
-        $offset += 8;
-        return $result[1];
-    }
-
-    public static function readLEB128Uint32(string $input, int &$offset) {
-        // Unpack the entire string into an array of bytes (unsigned chars)
-        $bytes = unpack('C*', hex2bin(substr($input, $offset)));
-
-        $result = 0;
-        $shift = 0;
-
-        foreach ($bytes as $byte) {
-            $result |= (($byte & 0x7F) << $shift);
-            $offset += 2;
-
-            // If the most significant bit is 0, this is the final byte.
-            if (($byte & 0x80) === 0) {
-                return $result;
-            }
-
-            $shift += 7;
-            if ($shift >= 32) {
-                throw new Exception("LEB128 value too large for a u32");
-            }
+    public static function readUint8(string $input, int &$offset): int
+    {
+        if (!isset($input[$offset])) {
+            throw new Exception('Unexpected end of input at byte ' . $offset);
         }
 
-        throw new Exception("Incomplete LEB128 sequence: termination byte not found");
+        return ord($input[$offset++]);
     }
 
-    public static function readLEB128int32(string $input, int &$offset) {
-        // Unpack the entire string into an array of bytes (unsigned chars)
-        $bytes = unpack('C*', hex2bin(substr($input, $offset)));
+    public static function readUint32(string $input, int &$offset): int
+    {
+        return self::readFixed($input, $offset, 'V', 4);
+    }
 
+    // https://webassembly.github.io/spec/core/binary/values.html#integers
+    public static function readLEB128Uint32(string $input, int &$offset): int
+    {
         $result = 0;
         $shift = 0;
-
-        foreach ($bytes as $byte) {
-            $result |= (($byte & 0x7F) << $shift);
-            $offset += 2;
-
-            // If the most significant bit is 0, this is the final byte.
-            if (($byte & 0x80) === 0) {
-                if ($shift < 32 && ($byte & 0x40)) {
-                    $result |= (~0 << ($shift + 7));
-                }
-                return $result;
+        do {
+            if ($shift >= 35) {
+                throw new Exception('LEB128 value too large for a u32');
             }
 
+            $byte = self::readUint8($input, $offset);
+            $result |= ($byte & 0x7F) << $shift;
             $shift += 7;
-            if ($shift >= 32) {
-                throw new Exception("LEB128 value too large for a u32");
-            }
+        } while ($byte & 0x80);
+
+        if ($result > 0xFFFFFFFF) {
+            throw new Exception('LEB128 value too large for a u32');
         }
 
-        throw new Exception("Incomplete LEB128 sequence: termination byte not found");
+        return $result;
     }
 
-    public static function readFloat32(string $input, int &$offset)
+    public static function readLEB128Int32(string $input, int &$offset): int
     {
-        $result = unpack('g', hex2bin(substr($input, $offset, 8)));
-        $offset += 8;
-        return $result[1];
+        return self::readSignedLEB128($input, $offset, 32);
     }
 
-    public static function readFloat64(string $input, int &$offset)
+    public static function readLEB128Int64(string $input, int &$offset): int
     {
-        $value = unpack('d', hex2bin(substr($input, $offset, 16)));
-        $offset += 16;
-        return $value[1];
+        return self::readSignedLEB128($input, $offset, 64);
     }
 
-    public static function readBytes(string $input, int &$offset, int $count)
+    public static function readFloat32(string $input, int &$offset): float
     {
-        $bytes = hex2bin(substr($input, $offset, $count * 2));
-        $offset += $count * 2;
+        return self::readFixed($input, $offset, 'g', 4);
+    }
+
+    public static function readFloat64(string $input, int &$offset): float
+    {
+        return self::readFixed($input, $offset, 'e', 8);
+    }
+
+    public static function readBytes(string $input, int &$offset, int $count): string
+    {
+        if ($offset + $count > strlen($input)) {
+            throw new Exception('Unexpected end of input at byte ' . $offset);
+        }
+
+        $bytes = substr($input, $offset, $count);
+        $offset += $count;
         return $bytes;
+    }
+
+    protected static function readSignedLEB128(string $input, int &$offset, int $bits): int
+    {
+        $max_bytes = intdiv($bits + 6, 7);
+        $result = 0;
+        $shift = 0;
+        do {
+            if ($shift >= $max_bytes * 7) {
+                throw new Exception("LEB128 value too large for an s$bits");
+            }
+
+            $byte = self::readUint8($input, $offset);
+            $result |= ($byte & 0x7F) << $shift;
+            $shift += 7;
+        } while ($byte & 0x80);
+
+        // Sign extend from the final byte's sign bit
+        if ($shift < 64 && ($byte & 0x40)) {
+            $result |= -1 << $shift;
+        }
+
+        return $result;
+    }
+
+    protected static function readFixed(string $input, int &$offset, string $format, int $size): int|float
+    {
+        return unpack($format, self::readBytes($input, $offset, $size))[1];
     }
 }

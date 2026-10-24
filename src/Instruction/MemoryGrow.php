@@ -8,7 +8,6 @@ use Oatmael\WasmPhp\Type\I32;
 use Oatmael\WasmPhp\Type\I64;
 use Oatmael\WasmPhp\Util\WasmReader;
 
-#[Opcode(StandardOpcode::memory_grow)]
 class MemoryGrow implements InstructionInterface {
     public function __construct(
         public readonly int $reserved

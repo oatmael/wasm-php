@@ -9,7 +9,6 @@ use Oatmael\WasmPhp\Type\I64;
 use Oatmael\WasmPhp\Type\Memory;
 use Oatmael\WasmPhp\Util\WasmReader;
 
-#[Opcode(StandardOpcode::memory_size)]
 class MemorySize implements InstructionInterface {
     public function __construct(
         public readonly int $reserved

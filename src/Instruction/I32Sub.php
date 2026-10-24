@@ -6,7 +6,6 @@ use Exception;
 use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Type\I32;
 
-#[Opcode(StandardOpcode::i32_sub)]
 class I32Sub implements InstructionInterface {
     public static function fromInput(string $input, int &$offset): InstructionInterface
     {
