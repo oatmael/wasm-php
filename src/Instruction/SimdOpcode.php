@@ -262,4 +262,26 @@ enum SimdOpcode: int {
     case i32x4_trunc_sat_f64x2_u_zero   = 0xfd;
     case f64x2_convert_low_i32x4_s      = 0xfe;
     case f64x2_convert_low_i32x4_u      = 0xff;
+
+    // Relaxed SIMD
+    case i8x16_relaxed_swizzle             = 0x100;
+    case i32x4_relaxed_trunc_f32x4_s       = 0x101;
+    case i32x4_relaxed_trunc_f32x4_u       = 0x102;
+    case i32x4_relaxed_trunc_f64x2_s_zero  = 0x103;
+    case i32x4_relaxed_trunc_f64x2_u_zero  = 0x104;
+    case f32x4_relaxed_madd                = 0x105;
+    case f32x4_relaxed_nmadd               = 0x106;
+    case f64x2_relaxed_madd                = 0x107;
+    case f64x2_relaxed_nmadd               = 0x108;
+    case i8x16_relaxed_laneselect          = 0x109;
+    case i16x8_relaxed_laneselect          = 0x10a;
+    case i32x4_relaxed_laneselect          = 0x10b;
+    case i64x2_relaxed_laneselect          = 0x10c;
+    case f32x4_relaxed_min                 = 0x10d;
+    case f32x4_relaxed_max                 = 0x10e;
+    case f64x2_relaxed_min                 = 0x10f;
+    case f64x2_relaxed_max                 = 0x110;
+    case i16x8_relaxed_q15mulr_s           = 0x111;
+    case i16x8_relaxed_dot_i8x16_i7x16_s   = 0x112;
+    case i32x4_relaxed_dot_i8x16_i7x16_add_s = 0x113;
 }

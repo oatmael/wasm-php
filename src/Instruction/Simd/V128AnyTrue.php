@@ -2,9 +2,9 @@
 
 namespace Oatmael\WasmPhp\Instruction\Simd;
 
-use Exception;
 use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Instruction\InstructionInterface;
+use Oatmael\WasmPhp\Type\I32;
 
 class V128AnyTrue implements InstructionInterface {
     public static function fromInput(string $input, int &$offset): InstructionInterface {
@@ -12,6 +12,6 @@ class V128AnyTrue implements InstructionInterface {
     }
 
     public function execute(array &$stack, array &$call_stack, Store $store) {
-        throw new Exception('Not implemented: v128.any_true opcode');
+        $stack[] = new I32(trim(array_pop($stack)->bytes, "\0") === '' ? 0 : 1);
     }
 }

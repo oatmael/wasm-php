@@ -2,9 +2,11 @@
 
 namespace Oatmael\WasmPhp\Instruction\Simd;
 
-use Exception;
 use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Instruction\InstructionInterface;
+use Oatmael\WasmPhp\Type\V128;
+use Oatmael\WasmPhp\Util\Floats;
+use Oatmael\WasmPhp\Util\Shape;
 
 class F32x4Ceil implements InstructionInterface {
     public static function fromInput(string $input, int &$offset): InstructionInterface {
@@ -12,6 +14,6 @@ class F32x4Ceil implements InstructionInterface {
     }
 
     public function execute(array &$stack, array &$call_stack, Store $store) {
-        throw new Exception('Not implemented: f32x4.ceil opcode');
+        $stack[] = V128::fromLanes(Shape::F32x4, array_map(static fn ($a) => Floats::ceil($a), array_pop($stack)->lanes(Shape::F32x4)));
     }
 }

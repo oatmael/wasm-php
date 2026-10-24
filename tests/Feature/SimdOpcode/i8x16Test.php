@@ -2,76 +2,169 @@
 
 namespace Tests\Feature\SimdOpcode;
 
-test('i8x16_abs', function () {})->todo();
+use Oatmael\WasmPhp\Type\I32;
+use Oatmael\WasmPhp\Util\Shape;
 
-test('i8x16_add', function () {})->todo();
+test('i8x16_abs', function () {
+  expect(simdOp('i8x16.abs', [v128(Shape::I8x16, [0, 1, -1, 127, -128, 100, -100, 50, 2, 3, 4, 5, 6, 7, 8, 9])], Shape::I8x16))->toBe([0, 1, 1, 127, -128, 100, 100, 50, 2, 3, 4, 5, 6, 7, 8, 9]);
+});
 
-test('i8x16_add_sat_s', function () {})->todo();
+test('i8x16_add', function () {
+  expect(simdOp('i8x16.add', [v128(Shape::I8x16, [0, 1, -1, 127, -128, 100, -100, 50, 2, 3, 4, 5, 6, 7, 8, 9]), v128(Shape::I8x16, [1, 1, 1, 1, 1, 100, 100, -50, 2, 2, 2, -2, 2, 2, 2, 2])], Shape::I8x16))->toBe([1, 2, 0, -128, -127, -56, 0, 0, 4, 5, 6, 3, 8, 9, 10, 11]);
+});
 
-test('i8x16_add_sat_u', function () {})->todo();
+test('i8x16_add_sat_s', function () {
+  expect(simdOp('i8x16.add_sat_s', [v128(Shape::I8x16, [0, 1, -1, 127, -128, 100, -100, 50, 2, 3, 4, 5, 6, 7, 8, 9]), v128(Shape::I8x16, [1, 1, 1, 1, 1, 100, 100, -50, 2, 2, 2, -2, 2, 2, 2, 2])], Shape::I8x16))->toBe([1, 2, 0, 127, -127, 127, 0, 0, 4, 5, 6, 3, 8, 9, 10, 11]);
+});
 
-test('i8x16_all_true', function () {})->todo();
+test('i8x16_add_sat_u', function () {
+  expect(simdOp('i8x16.add_sat_u', [v128(Shape::I8x16, [0, 1, -1, 127, -128, 100, -100, 50, 2, 3, 4, 5, 6, 7, 8, 9]), v128(Shape::I8x16, [1, 1, 1, 1, 1, 100, 100, -50, 2, 2, 2, -2, 2, 2, 2, 2])], Shape::I8x16))->toBe([1, 2, -1, -128, -127, -56, -1, -1, 4, 5, 6, -1, 8, 9, 10, 11]);
+});
 
-test('i8x16_avgr_u', function () {})->todo();
+test('i8x16_all_true', function () {
+  expect(wasmOp('i8x16.all_true', [v128(Shape::I8x16, [0, 1, -1, 127, -128, 100, -100, 50, 2, 3, 4, 5, 6, 7, 8, 9])], 'i32')->getValue())->toBe(0);
+  expect(wasmOp('i8x16.all_true', [v128(Shape::I8x16, [1, 1, 1, 1, 1, 100, 100, -50, 2, 2, 2, -2, 2, 2, 2, 2])], 'i32')->getValue())->toBe(1);
+});
 
-test('i8x16_bitmask', function () {})->todo();
+test('i8x16_avgr_u', function () {
+  expect(simdOp('i8x16.avgr_u', [v128(Shape::I8x16, [0, 1, -1, 127, -128, 100, -100, 50, 2, 3, 4, 5, 6, 7, 8, 9]), v128(Shape::I8x16, [1, 1, 1, 1, 1, 100, 100, -50, 2, 2, 2, -2, 2, 2, 2, 2])], Shape::I8x16, false))->toBe([1, 1, 128, 64, 65, 100, 128, 128, 2, 3, 3, 130, 4, 5, 5, 6]);
+});
 
-test('i8x16_eq', function () {})->todo();
+test('i8x16_bitmask', function () {
+  expect(wasmOp('i8x16.bitmask', [v128(Shape::I8x16, [0, 1, -1, 127, -128, 100, -100, 50, 2, 3, 4, 5, 6, 7, 8, 9])], 'i32')->getValue())->toBe(84);
+});
 
-test('i8x16_extract_lane_s', function () {})->todo();
+test('i8x16_eq', function () {
+  expect(simdOp('i8x16.eq', [v128(Shape::I8x16, [0, 1, -1, 127, -128, 100, -100, 50, 2, 3, 4, 5, 6, 7, 8, 9]), v128(Shape::I8x16, [1, 1, 1, 1, 1, 100, 100, -50, 2, 2, 2, -2, 2, 2, 2, 2])], Shape::I8x16))->toBe([0, -1, 0, 0, 0, -1, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0]);
+});
 
-test('i8x16_extract_lane_u', function () {})->todo();
+test('i8x16_extract_lane_s', function () {
+  expect(wasmOp('i8x16.extract_lane_s 2', [v128(Shape::I8x16, [0, 1, -1, 127, -128, 100, -100, 50, 2, 3, 4, 5, 6, 7, 8, 9])], 'i32')->getValue())->toBe(-1);
+});
 
-test('i8x16_ge_s', function () {})->todo();
+test('i8x16_extract_lane_u', function () {
+  expect(wasmOp('i8x16.extract_lane_u 2', [v128(Shape::I8x16, [0, 1, -1, 127, -128, 100, -100, 50, 2, 3, 4, 5, 6, 7, 8, 9])], 'i32')->getValue())->toBe(255);
+});
 
-test('i8x16_ge_u', function () {})->todo();
+test('i8x16_ge_s', function () {
+  expect(simdOp('i8x16.ge_s', [v128(Shape::I8x16, [0, 1, -1, 127, -128, 100, -100, 50, 2, 3, 4, 5, 6, 7, 8, 9]), v128(Shape::I8x16, [1, 1, 1, 1, 1, 100, 100, -50, 2, 2, 2, -2, 2, 2, 2, 2])], Shape::I8x16))->toBe([0, -1, 0, -1, 0, -1, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1]);
+});
 
-test('i8x16_gt_s', function () {})->todo();
+test('i8x16_ge_u', function () {
+  expect(simdOp('i8x16.ge_u', [v128(Shape::I8x16, [0, 1, -1, 127, -128, 100, -100, 50, 2, 3, 4, 5, 6, 7, 8, 9]), v128(Shape::I8x16, [1, 1, 1, 1, 1, 100, 100, -50, 2, 2, 2, -2, 2, 2, 2, 2])], Shape::I8x16))->toBe([0, -1, -1, -1, -1, -1, -1, 0, -1, -1, -1, 0, -1, -1, -1, -1]);
+});
 
-test('i8x16_gt_u', function () {})->todo();
+test('i8x16_gt_s', function () {
+  expect(simdOp('i8x16.gt_s', [v128(Shape::I8x16, [0, 1, -1, 127, -128, 100, -100, 50, 2, 3, 4, 5, 6, 7, 8, 9]), v128(Shape::I8x16, [1, 1, 1, 1, 1, 100, 100, -50, 2, 2, 2, -2, 2, 2, 2, 2])], Shape::I8x16))->toBe([0, 0, 0, -1, 0, 0, 0, -1, 0, -1, -1, -1, -1, -1, -1, -1]);
+});
 
-test('i8x16_le_s', function () {})->todo();
+test('i8x16_gt_u', function () {
+  expect(simdOp('i8x16.gt_u', [v128(Shape::I8x16, [0, 1, -1, 127, -128, 100, -100, 50, 2, 3, 4, 5, 6, 7, 8, 9]), v128(Shape::I8x16, [1, 1, 1, 1, 1, 100, 100, -50, 2, 2, 2, -2, 2, 2, 2, 2])], Shape::I8x16))->toBe([0, 0, -1, -1, -1, 0, -1, 0, 0, -1, -1, 0, -1, -1, -1, -1]);
+});
 
-test('i8x16_le_u', function () {})->todo();
+test('i8x16_le_s', function () {
+  expect(simdOp('i8x16.le_s', [v128(Shape::I8x16, [0, 1, -1, 127, -128, 100, -100, 50, 2, 3, 4, 5, 6, 7, 8, 9]), v128(Shape::I8x16, [1, 1, 1, 1, 1, 100, 100, -50, 2, 2, 2, -2, 2, 2, 2, 2])], Shape::I8x16))->toBe([-1, -1, -1, 0, -1, -1, -1, 0, -1, 0, 0, 0, 0, 0, 0, 0]);
+});
 
-test('i8x16_lt_s', function () {})->todo();
+test('i8x16_le_u', function () {
+  expect(simdOp('i8x16.le_u', [v128(Shape::I8x16, [0, 1, -1, 127, -128, 100, -100, 50, 2, 3, 4, 5, 6, 7, 8, 9]), v128(Shape::I8x16, [1, 1, 1, 1, 1, 100, 100, -50, 2, 2, 2, -2, 2, 2, 2, 2])], Shape::I8x16))->toBe([-1, -1, 0, 0, 0, -1, 0, -1, -1, 0, 0, -1, 0, 0, 0, 0]);
+});
 
-test('i8x16_lt_u', function () {})->todo();
+test('i8x16_lt_s', function () {
+  expect(simdOp('i8x16.lt_s', [v128(Shape::I8x16, [0, 1, -1, 127, -128, 100, -100, 50, 2, 3, 4, 5, 6, 7, 8, 9]), v128(Shape::I8x16, [1, 1, 1, 1, 1, 100, 100, -50, 2, 2, 2, -2, 2, 2, 2, 2])], Shape::I8x16))->toBe([-1, 0, -1, 0, -1, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+});
 
-test('i8x16_max_s', function () {})->todo();
+test('i8x16_lt_u', function () {
+  expect(simdOp('i8x16.lt_u', [v128(Shape::I8x16, [0, 1, -1, 127, -128, 100, -100, 50, 2, 3, 4, 5, 6, 7, 8, 9]), v128(Shape::I8x16, [1, 1, 1, 1, 1, 100, 100, -50, 2, 2, 2, -2, 2, 2, 2, 2])], Shape::I8x16))->toBe([-1, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, 0]);
+});
 
-test('i8x16_max_u', function () {})->todo();
+test('i8x16_max_s', function () {
+  expect(simdOp('i8x16.max_s', [v128(Shape::I8x16, [0, 1, -1, 127, -128, 100, -100, 50, 2, 3, 4, 5, 6, 7, 8, 9]), v128(Shape::I8x16, [1, 1, 1, 1, 1, 100, 100, -50, 2, 2, 2, -2, 2, 2, 2, 2])], Shape::I8x16))->toBe([1, 1, 1, 127, 1, 100, 100, 50, 2, 3, 4, 5, 6, 7, 8, 9]);
+});
 
-test('i8x16_min_s', function () {})->todo();
+test('i8x16_max_u', function () {
+  expect(simdOp('i8x16.max_u', [v128(Shape::I8x16, [0, 1, -1, 127, -128, 100, -100, 50, 2, 3, 4, 5, 6, 7, 8, 9]), v128(Shape::I8x16, [1, 1, 1, 1, 1, 100, 100, -50, 2, 2, 2, -2, 2, 2, 2, 2])], Shape::I8x16))->toBe([1, 1, -1, 127, -128, 100, -100, -50, 2, 3, 4, -2, 6, 7, 8, 9]);
+});
 
-test('i8x16_min_u', function () {})->todo();
+test('i8x16_min_s', function () {
+  expect(simdOp('i8x16.min_s', [v128(Shape::I8x16, [0, 1, -1, 127, -128, 100, -100, 50, 2, 3, 4, 5, 6, 7, 8, 9]), v128(Shape::I8x16, [1, 1, 1, 1, 1, 100, 100, -50, 2, 2, 2, -2, 2, 2, 2, 2])], Shape::I8x16))->toBe([0, 1, -1, 1, -128, 100, -100, -50, 2, 2, 2, -2, 2, 2, 2, 2]);
+});
 
-test('i8x16_narrow_i16x8_s', function () {})->todo();
+test('i8x16_min_u', function () {
+  expect(simdOp('i8x16.min_u', [v128(Shape::I8x16, [0, 1, -1, 127, -128, 100, -100, 50, 2, 3, 4, 5, 6, 7, 8, 9]), v128(Shape::I8x16, [1, 1, 1, 1, 1, 100, 100, -50, 2, 2, 2, -2, 2, 2, 2, 2])], Shape::I8x16))->toBe([0, 1, 1, 1, 1, 100, 100, 50, 2, 2, 2, 5, 2, 2, 2, 2]);
+});
 
-test('i8x16_narrow_i16x8_u', function () {})->todo();
+test('i8x16_narrow_i16x8_s', function () {
+  expect(simdOp('i8x16.narrow_i16x8_s', [v128(Shape::I16x8, [0, 1, -1, 32767, -32768, 1000, -1000, 300]), v128(Shape::I16x8, [1, 1, 1, 1, 1, 1000, 1000, -300])], Shape::I8x16))->toBe([0, 1, -1, 127, -128, 127, -128, 127, 1, 1, 1, 1, 1, 127, 127, -128]);
+});
 
-test('i8x16_ne', function () {})->todo();
+test('i8x16_narrow_i16x8_u', function () {
+  expect(simdOp('i8x16.narrow_i16x8_u', [v128(Shape::I16x8, [0, 1, -1, 32767, -32768, 1000, -1000, 300]), v128(Shape::I16x8, [1, 1, 1, 1, 1, 1000, 1000, -300])], Shape::I8x16))->toBe([0, 1, 0, -1, 0, -1, 0, -1, 1, 1, 1, 1, 1, -1, -1, 0]);
+});
 
-test('i8x16_neg', function () {})->todo();
+test('i8x16_ne', function () {
+  expect(simdOp('i8x16.ne', [v128(Shape::I8x16, [0, 1, -1, 127, -128, 100, -100, 50, 2, 3, 4, 5, 6, 7, 8, 9]), v128(Shape::I8x16, [1, 1, 1, 1, 1, 100, 100, -50, 2, 2, 2, -2, 2, 2, 2, 2])], Shape::I8x16))->toBe([-1, 0, -1, -1, -1, 0, -1, -1, 0, -1, -1, -1, -1, -1, -1, -1]);
+});
 
-test('i8x16_popcnt', function () {})->todo();
+test('i8x16_neg', function () {
+  expect(simdOp('i8x16.neg', [v128(Shape::I8x16, [0, 1, -1, 127, -128, 100, -100, 50, 2, 3, 4, 5, 6, 7, 8, 9])], Shape::I8x16))->toBe([0, -1, 1, -127, -128, -100, 100, -50, -2, -3, -4, -5, -6, -7, -8, -9]);
+});
 
-test('i8x16_replace_lane', function () {})->todo();
+test('i8x16_popcnt', function () {
+  expect(simdOp('i8x16.popcnt', [v128(Shape::I8x16, [0, 1, -1, 127, -128, 100, -100, 50, 2, 3, 4, 5, 6, 7, 8, 9])], Shape::I8x16))->toBe([0, 1, 8, 7, 1, 3, 4, 3, 1, 2, 1, 2, 2, 3, 1, 2]);
+});
 
-test('i8x16_shl', function () {})->todo();
+test('i8x16_relaxed_laneselect', function () {
+  // Takes lanes from the first operand where the mask is set
+  expect(simdOp('i8x16.relaxed_laneselect', [v128(Shape::I8x16, [0, 1, -1, 127, -128, 100, -100, 50, 2, 3, 4, 5, 6, 7, 8, 9]), v128(Shape::I8x16, [1, 1, 1, 1, 1, 100, 100, -50, 2, 2, 2, -2, 2, 2, 2, 2]), v128(Shape::I8x16, [0, -1, 0, -1, 0, -1, 0, -1, 0, -1, 0, -1, 0, -1, 0, -1])], Shape::I8x16))->toBe([1, 1, 1, 127, 1, 100, 100, 50, 2, 3, 2, 5, 2, 7, 2, 9]);
+});
 
-test('i8x16_shr_s', function () {})->todo();
+test('i8x16_relaxed_swizzle', function () {
+  // Indices of 16 and above select 0
+  expect(simdOp('i8x16.relaxed_swizzle', [v128(Shape::I8x16, [0, 1, -1, 127, -128, 100, -100, 50, 2, 3, 4, 5, 6, 7, 8, 9]), v128(Shape::I8x16, [15, 0, 16, 255, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])], Shape::I8x16))->toBe([9, 0, 0, 0, 1, -1, 127, -128, 100, -100, 50, 2, 3, 4, 5, 6]);
+});
 
-test('i8x16_shr_u', function () {})->todo();
+test('i8x16_replace_lane', function () {
+  expect(simdOp('i8x16.replace_lane 1', [v128(Shape::I8x16, [0, 1, -1, 127, -128, 100, -100, 50, 2, 3, 4, 5, 6, 7, 8, 9]), new I32(42)], Shape::I8x16))->toBe([0, 42, -1, 127, -128, 100, -100, 50, 2, 3, 4, 5, 6, 7, 8, 9]);
+});
 
-test('i8x16_shuffle', function () {})->todo();
+test('i8x16_shl', function () {
+  // Shifting by 9 shifts by 1
+  expect(simdOp('i8x16.shl', [v128(Shape::I8x16, [0, 1, -1, 127, -128, 100, -100, 50, 2, 3, 4, 5, 6, 7, 8, 9]), new I32(9)], Shape::I8x16))->toBe([0, 2, -2, -2, 0, -56, 56, 100, 4, 6, 8, 10, 12, 14, 16, 18]);
+});
 
-test('i8x16_splat', function () {})->todo();
+test('i8x16_shr_s', function () {
+  // Shifting by 9 shifts by 1
+  expect(simdOp('i8x16.shr_s', [v128(Shape::I8x16, [0, 1, -1, 127, -128, 100, -100, 50, 2, 3, 4, 5, 6, 7, 8, 9]), new I32(9)], Shape::I8x16))->toBe([0, 0, -1, 63, -64, 50, -50, 25, 1, 1, 2, 2, 3, 3, 4, 4]);
+});
 
-test('i8x16_sub', function () {})->todo();
+test('i8x16_shr_u', function () {
+  // Shifting by 9 shifts by 1
+  expect(simdOp('i8x16.shr_u', [v128(Shape::I8x16, [0, 1, -1, 127, -128, 100, -100, 50, 2, 3, 4, 5, 6, 7, 8, 9]), new I32(9)], Shape::I8x16))->toBe([0, 0, 127, 63, 64, 50, 78, 25, 1, 1, 2, 2, 3, 3, 4, 4]);
+});
 
-test('i8x16_sub_sat_s', function () {})->todo();
+test('i8x16_shuffle', function () {
+  // Lanes 16 to 31 select from the second operand
+  expect(simdOp('i8x16.shuffle 31 30 29 28 27 26 25 24 23 22 21 20 19 18 17 16', [v128(Shape::I8x16, [0, 1, -1, 127, -128, 100, -100, 50, 2, 3, 4, 5, 6, 7, 8, 9]), v128(Shape::I8x16, [1, 1, 1, 1, 1, 100, 100, -50, 2, 2, 2, -2, 2, 2, 2, 2])], Shape::I8x16))->toBe([2, 2, 2, 2, -2, 2, 2, 2, -50, 100, 100, 1, 1, 1, 1, 1]);
+});
 
-test('i8x16_sub_sat_u', function () {})->todo();
+test('i8x16_splat', function () {
+  expect(simdOp('i8x16.splat', [new I32(-2)], Shape::I8x16))->toBe([-2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2]);
+});
 
-test('i8x16_swizzle', function () {})->todo();
+test('i8x16_sub', function () {
+  expect(simdOp('i8x16.sub', [v128(Shape::I8x16, [0, 1, -1, 127, -128, 100, -100, 50, 2, 3, 4, 5, 6, 7, 8, 9]), v128(Shape::I8x16, [1, 1, 1, 1, 1, 100, 100, -50, 2, 2, 2, -2, 2, 2, 2, 2])], Shape::I8x16))->toBe([-1, 0, -2, 126, 127, 0, 56, 100, 0, 1, 2, 7, 4, 5, 6, 7]);
+});
+
+test('i8x16_sub_sat_s', function () {
+  expect(simdOp('i8x16.sub_sat_s', [v128(Shape::I8x16, [0, 1, -1, 127, -128, 100, -100, 50, 2, 3, 4, 5, 6, 7, 8, 9]), v128(Shape::I8x16, [1, 1, 1, 1, 1, 100, 100, -50, 2, 2, 2, -2, 2, 2, 2, 2])], Shape::I8x16))->toBe([-1, 0, -2, 126, -128, 0, -128, 100, 0, 1, 2, 7, 4, 5, 6, 7]);
+});
+
+test('i8x16_sub_sat_u', function () {
+  expect(simdOp('i8x16.sub_sat_u', [v128(Shape::I8x16, [0, 1, -1, 127, -128, 100, -100, 50, 2, 3, 4, 5, 6, 7, 8, 9]), v128(Shape::I8x16, [1, 1, 1, 1, 1, 100, 100, -50, 2, 2, 2, -2, 2, 2, 2, 2])], Shape::I8x16))->toBe([0, 0, -2, 126, 127, 0, 56, 0, 0, 1, 2, 0, 4, 5, 6, 7]);
+});
+
+test('i8x16_swizzle', function () {
+  // Indices of 16 and above select 0
+  expect(simdOp('i8x16.swizzle', [v128(Shape::I8x16, [0, 1, -1, 127, -128, 100, -100, 50, 2, 3, 4, 5, 6, 7, 8, 9]), v128(Shape::I8x16, [15, 0, 16, 255, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])], Shape::I8x16))->toBe([9, 0, 0, 0, 1, -1, 127, -128, 100, -100, 50, 2, 3, 4, 5, 6]);
+});

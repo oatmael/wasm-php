@@ -2,4 +2,4 @@
 
 namespace Oatmael\WasmPhp\Exception;
 
-class UnreachableException extends WasmException {}
+class UnreachableException extends TrapException {}

@@ -3,7 +3,6 @@
 namespace Oatmael\WasmPhp\Instruction;
 
 use Oatmael\WasmPhp\Execution\Store;
-use Oatmael\WasmPhp\Util\WasmReader;
 
 class Nop implements InstructionInterface {
     public static function fromInput(string $input, int &$offset): InstructionInterface {

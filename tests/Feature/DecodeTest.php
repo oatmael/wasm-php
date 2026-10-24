@@ -102,10 +102,10 @@ test('decodes global initialisers', function (string $type, string $init, $expec
     'f64'          => ['f64', '-2.25', -2.25],
 ]);
 
-test('rejects unsupported imports', function () {
+test('rejects unsupported limits', function () {
     wat2module(<<<WAT
         (module
-            (import "env" "memory" (memory 1))
+            (memory 1 1 shared)
         )
         WAT);
-})->throws(Exception::class, 'Unsupported import env.memory');
+})->throws(Exception::class, 'Unsupported limits flags');

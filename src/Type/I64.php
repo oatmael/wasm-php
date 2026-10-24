@@ -15,14 +15,28 @@ class I64 implements ValueInterface {
         }
     }
 
-    public function getUSize(): int
-    {
-        return 8;
-    }
-
     public function getValue()
     {
         return $this->value;
+    }
+
+    // Wrapping arithmetic on PHP ints, which turn into floats when they overflow
+    public static function add(int $left, int $right): int
+    {
+        $result = $left + $right;
+        return is_int($result) ? $result : self::fromBigInteger(BigInteger::of($left)->plus($right))->value;
+    }
+
+    public static function sub(int $left, int $right): int
+    {
+        $result = $left - $right;
+        return is_int($result) ? $result : self::fromBigInteger(BigInteger::of($left)->minus($right))->value;
+    }
+
+    public static function mul(int $left, int $right): int
+    {
+        $result = $left * $right;
+        return is_int($result) ? $result : self::fromBigInteger(BigInteger::of($left)->multipliedBy($right))->value;
     }
 
     // PHP ints are signed 64-bit, so the unsigned view (0 to 2^64 - 1) needs arbitrary precision

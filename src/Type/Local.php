@@ -7,7 +7,7 @@ use Oatmael\WasmPhp\Util\ValueType;
 class Local {
     public function __construct(
         public readonly int $type_count,
-        public readonly ValueType $value_type,
+        public readonly ValueType|RefType $value_type,
     )
     {
     }

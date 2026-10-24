@@ -2,7 +2,6 @@
 
 namespace Oatmael\WasmPhp\Instruction\Extension;
 
-use Exception;
 use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Instruction\InstructionInterface;
 use Oatmael\WasmPhp\Util\WasmReader;
@@ -21,6 +20,14 @@ class TableFill implements InstructionInterface
 
     public function execute(array &$stack, array &$call_stack, Store $store)
     {
-        throw new Exception('Not implemented: table.fill opcode');
+        $table = $store->tables[$this->table_idx];
+        $count = $table->operand(array_pop($stack));
+        $value = array_pop($stack);
+        $index = $table->operand(array_pop($stack));
+
+        $table->checkBounds($index, $count);
+        for ($i = 0; $i < $count; $i++) {
+            $table->elements[$index + $i] = $value;
+        }
     }
 }

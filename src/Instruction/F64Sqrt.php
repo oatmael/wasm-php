@@ -2,8 +2,8 @@
 
 namespace Oatmael\WasmPhp\Instruction;
 
-use Exception;
 use Oatmael\WasmPhp\Execution\Store;
+use Oatmael\WasmPhp\Type\F64;
 
 class F64Sqrt implements InstructionInterface {
     public static function fromInput(string $input, int &$offset): InstructionInterface {
@@ -11,6 +11,7 @@ class F64Sqrt implements InstructionInterface {
     }
 
     public function execute(array &$stack, array &$call_stack, Store $store) {
-        throw new Exception('Not implemented: f64.sqrt opcode');
+        $value = array_pop($stack);
+        $stack[] = new F64(sqrt($value->value));
     }
 }

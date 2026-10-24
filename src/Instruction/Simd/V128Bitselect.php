@@ -2,16 +2,20 @@
 
 namespace Oatmael\WasmPhp\Instruction\Simd;
 
-use Exception;
 use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Instruction\InstructionInterface;
+use Oatmael\WasmPhp\Type\V128;
 
+// Takes bits from the first operand where the mask is set, and the second where it is not
 class V128Bitselect implements InstructionInterface {
     public static function fromInput(string $input, int &$offset): InstructionInterface {
         return new self();
     }
 
     public function execute(array &$stack, array &$call_stack, Store $store) {
-        throw new Exception('Not implemented: v128.bitselect opcode');
+        $mask = array_pop($stack)->bytes;
+        $right = array_pop($stack)->bytes;
+        $left = array_pop($stack)->bytes;
+        $stack[] = new V128(($left & $mask) | ($right & ~$mask));
     }
 }

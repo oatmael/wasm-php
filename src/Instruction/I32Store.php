@@ -5,29 +5,24 @@ namespace Oatmael\WasmPhp\Instruction;
 use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Util\WasmReader;
 
-class I32Store implements InstructionInterface {
+class I32Store implements InstructionInterface
+{
     public function __construct(
         public readonly int $align,
         public readonly int $offset,
+        public readonly int $memory_idx = 0,
     ) {}
 
     public static function fromInput(string $input, int &$offset): InstructionInterface
     {
-        $mem_align = WasmReader::readLEB128Uint32($input, $offset);
-        $mem_offset = WasmReader::readLEB128Uint32($input, $offset);
-        return new self($mem_align, $mem_offset);
+        [$align, $memory_idx, $mem_offset] = WasmReader::readMemArg($input, $offset);
+        return new self($align, $mem_offset, $memory_idx);
     }
 
     public function execute(array &$stack, array &$call_stack, Store $store)
     {
         $value = array_pop($stack);
-        $addr = array_pop($stack);
-
-        $at = $addr->toUnsigned()->value + $this->offset;
-
-        $memory = $store->memory[0]; // Only 1 memory is valid for v1
-        $values = array_values(unpack("C4", pack("V", $value->getValue())));
-        array_splice($memory->data, $at, 4, $values);
+        $address = array_pop($stack);
+        $store->memory[$this->memory_idx]->store($address, $this->offset, pack('V', $value->value));
     }
-
 }

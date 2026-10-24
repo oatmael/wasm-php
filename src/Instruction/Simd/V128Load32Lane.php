@@ -2,29 +2,28 @@
 
 namespace Oatmael\WasmPhp\Instruction\Simd;
 
-use Exception;
 use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Instruction\InstructionInterface;
+use Oatmael\WasmPhp\Type\V128;
 use Oatmael\WasmPhp\Util\WasmReader;
 
-class V128Load32Lane implements InstructionInterface
-{
-  public function __construct(
-    public readonly int $align,
-    public readonly int $offset,
-    public readonly int $lane,
-  ) {}
+class V128Load32Lane implements InstructionInterface {
+    public function __construct(
+        public readonly int $align,
+        public readonly int $offset,
+        public readonly int $memory_idx,
+        public readonly int $lane,
+    ) {}
 
-  public static function fromInput(string $input, int &$offset): InstructionInterface
-  {
-    $align = WasmReader::readLEB128Uint32($input, $offset);
-    $mem_offset = WasmReader::readLEB128Uint32($input, $offset);
-    $lane = WasmReader::readUint8($input, $offset);
-    return new self($align, $mem_offset, $lane);
-  }
+    public static function fromInput(string $input, int &$offset): InstructionInterface {
+        [$align, $memory_idx, $mem_offset] = WasmReader::readMemArg($input, $offset);
+        return new self($align, $mem_offset, $memory_idx, WasmReader::readUint8($input, $offset));
+    }
 
-  public function execute(array &$stack, array &$call_stack, Store $store)
-  {
-    throw new Exception('Not implemented: v128.load32_lane opcode');
-  }
+    public function execute(array &$stack, array &$call_stack, Store $store) {
+        $vector = array_pop($stack);
+        $address = array_pop($stack);
+        $lane = $store->memory[$this->memory_idx]->load($address, $this->offset, 4);
+        $stack[] = new V128(substr_replace($vector->bytes, $lane, $this->lane * 4, 4));
+    }
 }

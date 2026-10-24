@@ -2,8 +2,9 @@
 
 namespace Oatmael\WasmPhp\Instruction;
 
-use Exception;
 use Oatmael\WasmPhp\Execution\Store;
+use Oatmael\WasmPhp\Type\F64;
+use Oatmael\WasmPhp\Util\Floats;
 
 class F64Trunc implements InstructionInterface {
     public static function fromInput(string $input, int &$offset): InstructionInterface {
@@ -11,6 +12,7 @@ class F64Trunc implements InstructionInterface {
     }
 
     public function execute(array &$stack, array &$call_stack, Store $store) {
-        throw new Exception('Not implemented: f64.trunc opcode');
+        $value = array_pop($stack);
+        $stack[] = new F64(Floats::trunc($value->value));
     }
 }

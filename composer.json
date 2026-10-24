@@ -24,5 +24,18 @@
         "allow-plugins": {
             "pestphp/pest-plugin": true
         }
+    },
+    "scripts": {
+        "test": "pest",
+        "spec": [
+            "Composer\\Config::disableProcessTimeout",
+            "php tests/Spec/run.php"
+        ],
+        "spec:fetch": "tests/Spec/fetch-testsuite.sh"
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
     }
 }

@@ -17,7 +17,7 @@
             packages = [
               pkgs.php85
               pkgs.php85Packages.composer
-              pkgs.wabt
+              pkgs.wasm-tools
             ];
           };
         });

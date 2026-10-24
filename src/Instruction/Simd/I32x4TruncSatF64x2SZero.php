@@ -2,9 +2,11 @@
 
 namespace Oatmael\WasmPhp\Instruction\Simd;
 
-use Exception;
 use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Instruction\InstructionInterface;
+use Oatmael\WasmPhp\Type\V128;
+use Oatmael\WasmPhp\Util\Floats;
+use Oatmael\WasmPhp\Util\Shape;
 
 class I32x4TruncSatF64x2SZero implements InstructionInterface {
     public static function fromInput(string $input, int &$offset): InstructionInterface {
@@ -12,6 +14,7 @@ class I32x4TruncSatF64x2SZero implements InstructionInterface {
     }
 
     public function execute(array &$stack, array &$call_stack, Store $store) {
-        throw new Exception('Not implemented: i32x4.trunc_sat_f64x2_s_zero opcode');
+        $lanes = array_map(static fn ($a) => Floats::toIntSaturated($a, 32, signed: true), array_pop($stack)->lanes(Shape::F64x2));
+        $stack[] = V128::fromLanes(Shape::I32x4, [...$lanes, 0, 0]);
     }
 }

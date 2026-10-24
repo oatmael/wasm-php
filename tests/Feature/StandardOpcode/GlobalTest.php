@@ -36,3 +36,15 @@ test('global_set', function (Module $module) {
     )
     WAT)
   ]);
+
+test('evaluates extended constant expressions', function () {
+  $module = wat2module(<<<WAT
+    (module
+      (global \$base i32 (i32.const 10))
+      (global \$derived i32 (i32.mul (i32.add (global.get \$base) (i32.const 2)) (i32.const 3)))
+      (func (export "f") (result i32) (global.get \$derived))
+    )
+    WAT);
+
+  expect($module->execute('f', [])[0]->getValue())->toBe(36);
+});

@@ -2,9 +2,9 @@
 
 namespace Oatmael\WasmPhp\Instruction;
 
-use Exception;
 use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Type\F32;
+use Oatmael\WasmPhp\Util\Floats;
 
 class F32Trunc implements InstructionInterface {
     public static function fromInput(string $input, int &$offset): InstructionInterface {
@@ -12,11 +12,7 @@ class F32Trunc implements InstructionInterface {
     }
 
     public function execute(array &$stack, array &$call_stack, Store $store) {
-        $target = array_pop($stack);
-        if (!$target instanceof F32) {
-            throw new Exception('Invalid operand types for f32.trunc');
-        }
-
-        array_push($stack, new F32(round($target->getValue(), 0, PHP_ROUND_HALF_DOWN)));
+        $value = array_pop($stack);
+        $stack[] = new F32(Floats::trunc($value->value));
     }
 }

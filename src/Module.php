@@ -3,139 +3,107 @@
 namespace Oatmael\WasmPhp;
 
 use Exception;
-use Oatmael\WasmPhp\Exception\CallStackExceededException;
 use Oatmael\WasmPhp\Execution\Store;
-use Oatmael\WasmPhp\Execution\Frame;
-use Oatmael\WasmPhp\Type\Export;
-use Oatmael\WasmPhp\Instruction\InstructionInterface;
+use Oatmael\WasmPhp\Type\FuncRef;
+use Oatmael\WasmPhp\Type\GlobalVariable;
+use Oatmael\WasmPhp\Type\Import;
 use Oatmael\WasmPhp\Type\Memory;
-use Oatmael\WasmPhp\Util\ExportType;
-use Oatmael\WasmPhp\Util\ValueType;
+use Oatmael\WasmPhp\Type\Table;
+use Oatmael\WasmPhp\Type\Tag;
 
 class Module {
-    protected string $magic = "\0asm";
+    public const MAX_CALL_STACK = 10_000;
 
-    protected array $stack;
-    protected array $call_stack;
     protected Store $store;
 
     public function __construct(
         protected int $version,
-        protected ?int $start,
         array $types,
-        array $codes,
-        array $functions,
-        array $memory,
-        array $data,
-        array $exports,
+        array $rec_groups,
         array $imports,
-        array $globals,
+        array $functions,
+        array $codes,
         array $tables,
+        array $memory,
+        array $globals,
+        array $tags,
+        array $exports,
         array $elements,
+        array $data,
+        ?int $start,
     )
     {
         $this->store = new Store(
-            types:      $types,
-            codes:      $codes,
-            functions:  $functions,
-            memory:     $memory,
-            data:       $data,
-            exports:    $exports,
-            imports:    $imports,
-            globals:    $globals,
-            tables:     $tables,
-            elements:   $elements,
+            types:            $types,
+            rec_groups:       $rec_groups,
+            imports:          $imports,
+            functions:        $functions,
+            codes:            $codes,
+            table_types:      $tables,
+            memory_types:     $memory,
+            global_types:     $globals,
+            tag_types:        $tags,
+            exports:          $exports,
+            element_segments: $elements,
+            data_segments:    $data,
+            start:            $start,
         );
     }
 
-    public const MAX_CALL_STACK = 10_000;
-
-    public function setImport(string $module, string $field, callable $func): self {
-        $this->store->setImport($module, $field, $func);
+    // Provide an import: a PHP callable or another module's exported function for function imports, or a Table,
+    // Memory, GlobalVariable or Tag (such as another module's export). Imports must be set before instantiation.
+    public function setImport(string $module, string $field, mixed $value): self {
+        $this->store->setImport($module, $field, $value);
         return $this;
+    }
+
+    /** @return Import[] */
+    public function getImports(): array
+    {
+        return $this->store->imports;
+    }
+
+    // Instantiation initialises globals, tables and memories, and runs the start function. It happens automatically
+    // the first time the module is used.
+    public function instantiate(): self
+    {
+        $this->store->instantiate();
+        return $this;
+    }
+
+    public function getExport(string $name): FuncRef|Table|Memory|GlobalVariable|Tag
+    {
+        $this->instantiate();
+        return $this->store->getExport($name) ?? throw new Exception("No export named '$name'");
     }
 
     public function getMemory(int $index = 0): Memory
     {
-        if (!isset($this->store->memory[$index])) {
-            throw new Exception('Memory index out of bounds');
-        }
-
-        return $this->store->memory[$index];
+        $this->instantiate();
+        return $this->store->memory[$index] ?? throw new Exception('Memory index out of bounds');
     }
 
-    public function execute(string $root, array $args)
+    public function execute(string $name, array $args): ?array
     {
-        $this->stack = [];
-        $this->call_stack = [];
+        $this->instantiate();
 
-        if (!$this->store->isInitialised()) {
-            $this->store->initialise();
-
-            if (isset($this->start)) {
-                $this->store->pushFrame($this->stack, $this->call_stack, $this->start);
-                $this->executeFrame();
-            }
+        $function = $this->store->getExport($name);
+        if (!($function instanceof FuncRef)) {
+            throw new Exception("No exported function named '$name'");
         }
 
-        $export = array_find($this->store->exports, static fn (Export $export) => $export->type === ExportType::FUNCTION && $export->name === $root)
-            ?? throw new Exception("No exported function named '$root'");
-
-        $function = $this->store->getFunctionType($export->idx);
-        $arity = count($function->results);
-
-        $expected = array_map(static fn (ValueType $param) => $param->valueClass(), $function->params);
-
+        $params = $function->type->params;
         $args = array_values($args);
-        $bad_signature = count($expected) !== count($args) ||
-            array_any($args, static fn ($arg, int $i) => !is_a($arg, $expected[$i]));
+        $bad_signature = count($params) !== count($args) ||
+            array_any($args, fn ($arg, int $i) => !$this->store->valueMatches($arg, $params[$i]));
 
         if ($bad_signature) {
             $provided = array_map(get_debug_type(...), $args);
-            throw new Exception('Bad export call - expected [' .implode(', ', $expected) . '], got [' . implode(', ', $provided) . ']');
+            throw new Exception('Bad export call - expected [' . implode(', ', array_map(static fn ($param) => $param->label(), $params)) . '], got [' . implode(', ', $provided) . ']');
         }
 
-        array_push($this->stack, ...$args);
+        $results = $this->store->invoke($function, $args);
 
-        $this->store->pushFrame($this->stack, $this->call_stack, $export->idx);
-        $this->executeFrame();
-
-        if ($arity > 0) {
-            if (count($this->stack) < $arity) {
-                throw new Exception('No return value found');
-            }
-
-            return array_slice($this->stack, -$arity);
-        }
-
-        return null;
-    }
-
-    protected function executeFrame()
-    {
-        $iters = 0;
-        while (true) {
-            /** @var Frame|null $frame */
-            $frame = end($this->call_stack);
-            if (!$frame) {
-                break;
-            }
-
-            if (count($this->call_stack) > self::MAX_CALL_STACK) {
-                throw new CallStackExceededException('Call stack size of ' . self::MAX_CALL_STACK . ' exceeded');
-            }
-
-            $frame->program_counter += 1;
-
-            /** @var InstructionInterface|null $instruction */
-            $instruction = $frame->instructions[$frame->program_counter] ?? null;
-            if (!$instruction) {
-                break;
-            }
-
-            $instruction->execute($this->stack, $this->call_stack, $this->store);
-
-            $iters++;
-        }
+        return $function->type->results ? $results : null;
     }
 }

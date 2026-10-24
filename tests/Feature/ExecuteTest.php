@@ -76,7 +76,7 @@ test('memory', function () {
     $ret = $module->execute('i32_store', []);
 
     expect($ret)->toBeNull();
-    expect(array_slice($module->getMemory()->data, 0, 4))->toBe([42, 0, 0, 0]);
+    expect($module->getMemory()->read(0, 4))->toBe("\x2a\0\0\0");
 });
 
 test('data', function () {
@@ -91,7 +91,7 @@ test('data', function () {
 
     $module->execute('noop', []);
 
-    expect(array_slice($module->getMemory()->data, 0, 10))->toBe(array_map(ord(...), str_split('helloworld')));
+    expect($module->getMemory()->read(0, 10))->toBe('helloworld');
 });
 
 test('globals', function () {

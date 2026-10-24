@@ -2,7 +2,6 @@
 
 namespace Oatmael\WasmPhp\Instruction;
 
-use Exception;
 use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Type\F32;
 
@@ -14,11 +13,6 @@ class F32Mul implements InstructionInterface {
     public function execute(array &$stack, array &$call_stack, Store $store) {
         $right = array_pop($stack);
         $left = array_pop($stack);
-
-        if (!$left instanceof F32 || !$right instanceof F32) {
-            throw new Exception('Invalid operand types for f32.mul');
-        }
-
-        array_push($stack, new F32($left->getValue() * $right->getValue()));
+        $stack[] = new F32($left->value * $right->value);
     }
 }

@@ -7,4 +7,5 @@ enum ExportType: int {
     case TABLE    = 0x01;
     case MEMORY   = 0x02;
     case GLOBAL   = 0x03;
+    case TAG      = 0x04;
 }

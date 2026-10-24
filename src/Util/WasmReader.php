@@ -6,33 +6,30 @@ use Exception;
 use Oatmael\WasmPhp\Instruction\Block;
 use Oatmael\WasmPhp\Instruction\End;
 use Oatmael\WasmPhp\Instruction\ExtensionOpcode;
-use Oatmael\WasmPhp\Instruction\F32Const;
-use Oatmael\WasmPhp\Instruction\F64Const;
-use Oatmael\WasmPhp\Instruction\I32Const;
-use Oatmael\WasmPhp\Instruction\I64Const;
+use Oatmael\WasmPhp\Instruction\GcOpcode;
 use Oatmael\WasmPhp\Instruction\IElse;
 use Oatmael\WasmPhp\Instruction\IIf;
 use Oatmael\WasmPhp\Instruction\InstructionInterface;
 use Oatmael\WasmPhp\Instruction\Loop;
+use Oatmael\WasmPhp\Instruction\RefFunc;
 use Oatmael\WasmPhp\Instruction\SimdOpcode;
 use Oatmael\WasmPhp\Instruction\StandardOpcode;
+use Oatmael\WasmPhp\Instruction\TryTable;
 use Oatmael\WasmPhp\Module;
+use Oatmael\WasmPhp\Type\ArrayType;
 use Oatmael\WasmPhp\Type\Code;
 use Oatmael\WasmPhp\Type\Data;
 use Oatmael\WasmPhp\Type\Element;
 use Oatmael\WasmPhp\Type\Export;
-use Oatmael\WasmPhp\Type\F32;
-use Oatmael\WasmPhp\Type\F64;
+use Oatmael\WasmPhp\Type\FieldType;
 use Oatmael\WasmPhp\Type\Func;
-use Oatmael\WasmPhp\Type\GlobalImmutable;
-use Oatmael\WasmPhp\Type\GlobalMutable;
-use Oatmael\WasmPhp\Type\I32;
-use Oatmael\WasmPhp\Type\I64;
+use Oatmael\WasmPhp\Type\GlobalType;
 use Oatmael\WasmPhp\Type\Import;
 use Oatmael\WasmPhp\Type\Local;
-use Oatmael\WasmPhp\Type\Memory;
-use Oatmael\WasmPhp\Type\Table;
-use Oatmael\WasmPhp\Type\ValueInterface;
+use Oatmael\WasmPhp\Type\MemoryType;
+use Oatmael\WasmPhp\Type\RefType;
+use Oatmael\WasmPhp\Type\StructType;
+use Oatmael\WasmPhp\Type\TableType;
 
 class WasmReader {
 
@@ -43,15 +40,18 @@ class WasmReader {
         'if'     => 'IIf',
         'else'   => 'IElse',
         'return' => 'IReturn',
+        'throw'  => 'IThrow',
     ];
 
     protected int $version;
     protected array $types;
+    protected array $rec_groups;
     protected array $imports;
     protected array $functions;
     protected array $tables;
     protected array $memory;
     protected array $globals;
+    protected array $tags;
     protected array $exports;
     protected ?int $start;
     protected array $elements;
@@ -66,11 +66,13 @@ class WasmReader {
         $this->version = 0;
         $this->start = null;
         $this->types = [];
+        $this->rec_groups = [];
         $this->imports = [];
         $this->functions = [];
         $this->tables = [];
         $this->memory = [];
         $this->globals = [];
+        $this->tags = [];
         $this->exports = [];
         $this->elements = [];
         $this->codes = [];
@@ -84,18 +86,24 @@ class WasmReader {
             $this->readSection($offset);
         }
 
+        if (count($this->functions) !== count($this->codes)) {
+            throw new Exception('Function and code section have inconsistent lengths');
+        }
+
         return new Module(
             version:    $this->version,
             types:      $this->types,
-            codes:      $this->codes,
-            functions:  $this->functions,
-            memory:     $this->memory,
-            data:       $this->data,
-            exports:    $this->exports,
+            rec_groups: $this->rec_groups,
             imports:    $this->imports,
-            globals:    $this->globals,
+            functions:  $this->functions,
+            codes:      $this->codes,
             tables:     $this->tables,
+            memory:     $this->memory,
+            globals:    $this->globals,
+            tags:       $this->tags,
+            exports:    $this->exports,
             elements:   $this->elements,
+            data:       $this->data,
             start:      $this->start,
         );
     }
@@ -129,11 +137,11 @@ class WasmReader {
         match ($section) {
             // https://webassembly.github.io/spec/core/binary/modules.html#binary-customsec
             Section::CUSTOM     => $offset = $section_end,
-            Section::TYPE       => $this->types = $this->readVec($offset, $this->readFuncType(...)),
+            Section::TYPE       => $this->readVec($offset, $this->readRecType(...)),
             Section::IMPORT     => $this->imports = $this->readVec($offset, $this->readImport(...)),
             Section::FUNCTION   => $this->functions = $this->readVec($offset, fn (int &$offset) => self::readLEB128Uint32($this->wasm, $offset)),
             Section::TABLE      => $this->tables = $this->readVec($offset, $this->readTable(...)),
-            Section::MEMORY     => $this->memory = $this->readVec($offset, $this->readMemory(...)),
+            Section::MEMORY     => $this->memory = $this->readVec($offset, $this->readMemoryType(...)),
             Section::GLOBAL     => $this->globals = $this->readVec($offset, $this->readGlobal(...)),
             Section::EXPORT     => $this->exports = $this->readVec($offset, $this->readExport(...)),
             Section::START      => $this->start = self::readLEB128Uint32($this->wasm, $offset),
@@ -141,6 +149,7 @@ class WasmReader {
             Section::CODE       => $this->codes = $this->readVec($offset, $this->readCode(...)),
             Section::DATA       => $this->data = $this->readVec($offset, $this->readData(...)),
             Section::DATA_COUNT => $this->data_count = self::readLEB128Uint32($this->wasm, $offset),
+            Section::TAG        => $this->tags = $this->readVec($offset, $this->readTag(...)),
         };
 
         if ($offset !== $section_end) {
@@ -160,67 +169,78 @@ class WasmReader {
         return $items;
     }
 
-    protected function readValueType(int &$offset): ValueType
-    {
-        $value_type = self::readUint8($this->wasm, $offset);
-        return ValueType::tryFrom($value_type) ?? throw new Exception('Invalid value type: ' . $value_type);
-    }
-
     // https://webassembly.github.io/spec/core/binary/types.html#limits
     protected function readLimits(int &$offset): array
     {
         $flags = self::readUint8($this->wasm, $offset);
-        $min = self::readLEB128Uint32($this->wasm, $offset);
-        $max = match ($flags) {
-            0x00    => null,
-            0x01    => self::readLEB128Uint32($this->wasm, $offset),
-            default => throw new Exception('Unsupported limits flags: ' . $flags),
-        };
+        if ($flags & ~0x05) {
+            throw new Exception('Unsupported limits flags: ' . $flags . ' (shared memories and custom page sizes are not supported)');
+        }
 
-        return [$min, $max];
+        $is64 = (bool) ($flags & 0x04);
+        $min = $is64 ? self::readLEB128Uint64($this->wasm, $offset) : self::readLEB128Uint32($this->wasm, $offset);
+        $max = !($flags & 0x01) ? null : ($is64 ? self::readLEB128Uint64($this->wasm, $offset) : self::readLEB128Uint32($this->wasm, $offset));
+
+        // u64 limits above 2^63 wrap negative, and are too large to allocate anyway
+        return [$min < 0 ? PHP_INT_MAX : $min, $max !== null && $max < 0 ? PHP_INT_MAX : $max, $is64];
     }
 
-    // Constant expressions are a single const instruction followed by end
+    // A constant expression, as its instructions without the final end
     // https://webassembly.github.io/spec/core/valid/instructions.html#constant-expressions
-    protected function readConstExpr(int &$offset): ValueInterface
+    protected function readConstExpr(int &$offset): array
     {
-        $instruction = self::readInstruction($this->wasm, $offset);
-        $value = match (true) {
-            $instruction instanceof I32Const => $instruction->const,
-            $instruction instanceof I64Const => new I64($instruction->value),
-            $instruction instanceof F32Const => new F32($instruction->value),
-            $instruction instanceof F64Const => new F64($instruction->value),
-            default => throw new Exception('Unsupported constant expression: ' . $instruction::class),
+        $instructions = [];
+        while (!(($instruction = self::readInstruction($this->wasm, $offset)) instanceof End)) {
+            $instructions[] = $instruction;
+        }
+
+        return $instructions;
+    }
+
+    // A recursion group of one or more types. Types outside an explicit rec group are in a group of their own.
+    // https://webassembly.github.io/spec/core/binary/types.html#recursive-types
+    protected function readRecType(int &$offset): void
+    {
+        $start = count($this->types);
+        if (ord($this->wasm[$offset] ?? "\0") === 0x4E) {
+            $offset++;
+            $this->readVec($offset, function (int &$offset) {
+                $this->types[] = $this->readSubType($offset);
+            });
+        } else {
+            $this->types[] = $this->readSubType($offset);
+        }
+
+        $this->rec_groups[] = [$start, count($this->types) - $start];
+    }
+
+    // https://webassembly.github.io/spec/core/binary/types.html#binary-subtype
+    protected function readSubType(int &$offset): Func|StructType|ArrayType
+    {
+        $form = self::readUint8($this->wasm, $offset);
+        if ($form !== 0x50 && $form !== 0x4F) {
+            return $this->readCompositeType($form, $offset, [], true);
+        }
+
+        $supertypes = $this->readVec($offset, fn (int &$offset) => self::readLEB128Uint32($this->wasm, $offset));
+        return $this->readCompositeType(self::readUint8($this->wasm, $offset), $offset, $supertypes, $form === 0x4F);
+    }
+
+    // https://webassembly.github.io/spec/core/binary/types.html#composite-types
+    protected function readCompositeType(int $form, int &$offset, array $supertypes, bool $final): Func|StructType|ArrayType
+    {
+        $read_value_type = fn (int &$offset) => self::readValueType($this->wasm, $offset);
+        $read_field = function (int &$offset) {
+            $storage = self::readStorageType($this->wasm, $offset);
+            return new FieldType($storage, (bool) self::readUint8($this->wasm, $offset));
         };
 
-        if (!(self::readInstruction($this->wasm, $offset) instanceof End)) {
-            throw new Exception('Constant expression must contain a single instruction');
-        }
-
-        return $value;
-    }
-
-    // Segment offsets are an i32 constant expression, interpreted as unsigned
-    protected function readOffsetExpr(int &$offset): int
-    {
-        $value = $this->readConstExpr($offset);
-        if (!($value instanceof I32)) {
-            throw new Exception('Segment offset must be an i32 constant expression');
-        }
-
-        return $value->toUnsigned()->value;
-    }
-
-    // https://webassembly.github.io/spec/core/binary/types.html#function-types
-    protected function readFuncType(int &$offset): Func
-    {
-        // WASM v1 only has one type
-        Type::from(self::readUint8($this->wasm, $offset));
-
-        $params = $this->readVec($offset, $this->readValueType(...));
-        $results = $this->readVec($offset, $this->readValueType(...));
-
-        return new Func($params, $results);
+        return match ($form) {
+            0x60    => new Func($this->readVec($offset, $read_value_type), $this->readVec($offset, $read_value_type), $supertypes, $final),
+            0x5F    => new StructType($this->readVec($offset, $read_field), $supertypes, $final),
+            0x5E    => new ArrayType($read_field($offset), $supertypes, $final),
+            default => throw new Exception(sprintf('Invalid composite type form 0x%02x', $form)),
+        };
     }
 
     // https://webassembly.github.io/spec/core/binary/modules.html#import-section
@@ -228,67 +248,124 @@ class WasmReader {
     {
         $module = self::readName($this->wasm, $offset);
         $field = self::readName($this->wasm, $offset);
-        $import_type = ImportType::from(self::readUint8($this->wasm, $offset));
-        if ($import_type !== ImportType::FUNCTION) {
-            throw new Exception("Unsupported import $module.$field - only function imports are supported, got {$import_type->name}");
-        }
+        $import_type = ImportType::tryFrom(self::readUint8($this->wasm, $offset)) ?? throw new Exception("Invalid import kind for $module.$field");
 
-        $idx = self::readLEB128Uint32($this->wasm, $offset);
+        $descriptor = match ($import_type) {
+            ImportType::FUNCTION => self::readLEB128Uint32($this->wasm, $offset),
+            ImportType::TABLE    => $this->readTableType($offset),
+            ImportType::MEMORY   => $this->readMemoryType($offset),
+            ImportType::GLOBAL   => $this->readGlobalType($offset),
+            ImportType::TAG      => $this->readTag($offset),
+        };
 
-        return new Import($module, $field, $import_type, $idx);
+        return new Import($module, $field, $import_type, $descriptor);
     }
 
     // https://webassembly.github.io/spec/core/binary/modules.html#table-section
-    protected function readTable(int &$offset): Table
+    protected function readTable(int &$offset): TableType
     {
-        $element_type = $this->readValueType($offset);
-        [$min, $max] = $this->readLimits($offset);
+        // Tables with an initialiser expression are prefixed with 0x40 0x00
+        if (ord($this->wasm[$offset] ?? "\0") !== 0x40) {
+            return $this->readTableType($offset);
+        }
 
-        return new Table($element_type, $min, $max);
+        $offset += 2;
+        $type = $this->readTableType($offset);
+        return new TableType($type->element_type, $type->min, $type->max, $type->is64, $this->readConstExpr($offset));
     }
 
-    // https://webassembly.github.io/spec/core/binary/modules.html#memory-section
-    protected function readMemory(int &$offset): Memory
+    protected function readTableType(int &$offset): TableType
     {
-        [$min, $max] = $this->readLimits($offset);
+        $element_type = self::readValueType($this->wasm, $offset);
+        if (!($element_type instanceof RefType)) {
+            throw new Exception('Table element type must be a reference type');
+        }
 
-        return new Memory($min, $max);
+        [$min, $max, $is64] = $this->readLimits($offset);
+        return new TableType($element_type, $min, $max, $is64);
+    }
+
+    // https://webassembly.github.io/spec/core/binary/types.html#memory-types
+    protected function readMemoryType(int &$offset): MemoryType
+    {
+        [$min, $max, $is64] = $this->readLimits($offset);
+        return new MemoryType($min, $max, $is64);
     }
 
     // https://webassembly.github.io/spec/core/binary/modules.html#global-section
-    protected function readGlobal(int &$offset): GlobalImmutable|GlobalMutable
+    protected function readGlobal(int &$offset): GlobalType
     {
-        $value_type = $this->readValueType($offset);
-        $mutability = GlobalMutability::from(self::readUint8($this->wasm, $offset));
-        $value = $this->readConstExpr($offset);
+        $type = $this->readGlobalType($offset);
+        return new GlobalType($type->type, $type->mutable, $this->readConstExpr($offset));
+    }
 
-        return $mutability === GlobalMutability::Immutable ?
-            new GlobalImmutable($value_type, $value) :
-            new GlobalMutable($value_type, $value);
+    protected function readGlobalType(int &$offset): GlobalType
+    {
+        $value_type = self::readValueType($this->wasm, $offset);
+        $mutable = match (self::readUint8($this->wasm, $offset)) {
+            0x00    => false,
+            0x01    => true,
+            default => throw new Exception('Invalid global mutability'),
+        };
+
+        return new GlobalType($value_type, $mutable);
+    }
+
+    // A tag's attribute (always 0, for exceptions) and type index
+    // https://webassembly.github.io/spec/core/binary/modules.html#tag-section
+    protected function readTag(int &$offset): int
+    {
+        if (self::readUint8($this->wasm, $offset) !== 0x00) {
+            throw new Exception('Invalid tag attribute');
+        }
+
+        return self::readLEB128Uint32($this->wasm, $offset);
     }
 
     // https://webassembly.github.io/spec/core/binary/modules.html#export-section
     protected function readExport(int &$offset): Export
     {
         $name = self::readName($this->wasm, $offset);
-        $export_type = ExportType::from(self::readUint8($this->wasm, $offset));
+        $export_type = ExportType::tryFrom(self::readUint8($this->wasm, $offset)) ?? throw new Exception("Invalid export kind for $name");
         $idx = self::readLEB128Uint32($this->wasm, $offset);
 
         return new Export($name, $export_type, $idx);
     }
 
+    // Element segments come in 8 forms. The flags' bits mean: 1 - passive or declarative, 2 - an explicit table
+    // index (or declarative, if passive), 4 - elements are expressions instead of function indices.
     // https://webassembly.github.io/spec/core/binary/modules.html#element-section
     protected function readElement(int &$offset): Element
     {
         $flags = self::readLEB128Uint32($this->wasm, $offset);
-        if ($flags !== 0) {
-            throw new Exception('Unsupported element segment flags: ' . $flags);
+        if ($flags > 7) {
+            throw new Exception('Invalid element segment flags: ' . $flags);
         }
 
-        $table_offset = $this->readOffsetExpr($offset);
-        $function_indices = $this->readVec($offset, fn (int &$offset) => self::readLEB128Uint32($this->wasm, $offset));
+        $mode = match (true) {
+            !($flags & 0x01) => SegmentMode::ACTIVE,
+            !($flags & 0x02) => SegmentMode::PASSIVE,
+            default          => SegmentMode::DECLARATIVE,
+        };
 
-        return new Element(0, $table_offset, $function_indices);
+        $table_idx = $flags === 0x02 || $flags === 0x06 ? self::readLEB128Uint32($this->wasm, $offset) : 0;
+        $table_offset = $mode === SegmentMode::ACTIVE ? $this->readConstExpr($offset) : [];
+
+        // Forms 0 and 4 have an implicit funcref type, while the others give an element kind or reference type
+        $type = new RefType(true, HeapType::FUNC);
+        if ($flags & 0x03) {
+            if ($flags & 0x04) {
+                $type = self::readValueType($this->wasm, $offset);
+            } elseif (self::readUint8($this->wasm, $offset) !== 0x00) {
+                throw new Exception('Invalid element kind');
+            }
+        }
+
+        $init = $flags & 0x04 ?
+            $this->readVec($offset, $this->readConstExpr(...)) :
+            $this->readVec($offset, fn (int &$offset) => [new RefFunc(self::readLEB128Uint32($this->wasm, $offset))]);
+
+        return new Element($mode, $type, $init, $table_idx, $table_offset);
     }
 
     // https://webassembly.github.io/spec/core/binary/modules.html#code-section
@@ -299,7 +376,7 @@ class WasmReader {
 
         $locals = $this->readVec($offset, function (int &$offset) {
             $type_count = self::readLEB128Uint32($this->wasm, $offset);
-            return new Local($type_count, $this->readValueType($offset));
+            return new Local($type_count, self::readValueType($this->wasm, $offset));
         });
 
         $instructions = [];
@@ -321,7 +398,7 @@ class WasmReader {
     {
         $open = [];
         foreach ($instructions as $i => $instruction) {
-            if ($instruction instanceof Block || $instruction instanceof Loop || $instruction instanceof IIf) {
+            if ($instruction instanceof Block || $instruction instanceof Loop || $instruction instanceof IIf || $instruction instanceof TryTable) {
                 $open[] = $instruction;
             } elseif ($instruction instanceof IElse) {
                 $if = end($open);
@@ -332,7 +409,7 @@ class WasmReader {
             } elseif ($instruction instanceof End) {
                 // An end with no open block closes the function body
                 $block = array_pop($open);
-                if ($block instanceof Block || $block instanceof IIf) {
+                if ($block && !($block instanceof Loop)) {
                     $block->end = $i;
                 }
             }
@@ -347,21 +424,15 @@ class WasmReader {
     protected function readData(int &$offset): Data
     {
         $flags = self::readLEB128Uint32($this->wasm, $offset);
-        $memory_idx = match ($flags) {
-            0x00    => 0,
-            0x02    => self::readLEB128Uint32($this->wasm, $offset),
-            default => throw new Exception('Unsupported data segment flags: ' . $flags),
-        };
+        if ($flags > 2) {
+            throw new Exception('Invalid data segment flags: ' . $flags);
+        }
 
-        $memory_offset = $this->readOffsetExpr($offset);
-        $data_size = self::readLEB128Uint32($this->wasm, $offset);
-        $bytes = self::readBytes($this->wasm, $offset, $data_size);
+        $memory_idx = $flags === 0x02 ? self::readLEB128Uint32($this->wasm, $offset) : 0;
+        $memory_offset = $flags === 0x01 ? [] : $this->readConstExpr($offset);
+        $bytes = self::readBytes($this->wasm, $offset, self::readLEB128Uint32($this->wasm, $offset));
 
-        return new Data(
-            $memory_idx,
-            $memory_offset,
-            init: array_values(unpack('C*', $bytes)),
-        );
+        return new Data($flags === 0x01 ? SegmentMode::PASSIVE : SegmentMode::ACTIVE, $bytes, $memory_idx, $memory_offset);
     }
 
     // https://webassembly.github.io/spec/core/binary/instructions.html
@@ -369,6 +440,7 @@ class WasmReader {
     {
         $byte = self::readUint8($input, $offset);
         [$opcode, $namespace] = match ($byte) {
+            GcOpcode::PREFIX        => [GcOpcode::tryFrom(self::readLEB128Uint32($input, $offset)), 'Gc\\'],
             ExtensionOpcode::PREFIX => [ExtensionOpcode::tryFrom(self::readLEB128Uint32($input, $offset)), 'Extension\\'],
             SimdOpcode::PREFIX      => [SimdOpcode::tryFrom(self::readLEB128Uint32($input, $offset)), 'Simd\\'],
             default                 => [StandardOpcode::tryFrom($byte), ''],
@@ -387,16 +459,72 @@ class WasmReader {
         return $class::fromInput($input, $offset);
     }
 
+    // A block type is empty (0x40), a single value type, or a type index encoded as a positive s33
     // https://webassembly.github.io/spec/core/binary/instructions.html#control-instructions
-    public static function readBlockType(string $input, int &$offset): ValueType|int
+    public static function readBlockType(string $input, int &$offset): ValueType|RefType|int
     {
-        // Encoded as an s33: non-negative values are type indices, negative values are a single byte value type (or empty)
-        $block_type = self::readSignedLEB128($input, $offset, 33);
-        if ($block_type >= 0) {
-            return $block_type;
+        $byte = ord($input[$offset] ?? "\0");
+        if ($byte === ValueType::VOID->value) {
+            $offset++;
+            return ValueType::VOID;
         }
 
-        return ValueType::tryFrom($block_type & 0x7F) ?? throw new Exception('Invalid block type: ' . $block_type);
+        if ($byte >= 0x40 && $byte < 0x80) {
+            return self::readValueType($input, $offset);
+        }
+
+        return self::readSignedLEB128($input, $offset, 33);
+    }
+
+    // https://webassembly.github.io/spec/core/binary/types.html#value-types
+    public static function readValueType(string $input, int &$offset): ValueType|RefType
+    {
+        $byte = self::readUint8($input, $offset);
+        return match (true) {
+            $byte === 0x63, $byte === 0x64       => new RefType($byte === 0x63, self::readHeapType($input, $offset)),
+            HeapType::tryFrom($byte) !== null     => new RefType(true, HeapType::from($byte)),
+            $byte !== ValueType::VOID->value && ValueType::tryFrom($byte) !== null => ValueType::from($byte),
+            default                              => throw new Exception(sprintf('Invalid value type 0x%02x', $byte)),
+        };
+    }
+
+    // An abstract heap type, or a type index encoded as a positive s33
+    // https://webassembly.github.io/spec/core/binary/types.html#heap-types
+    public static function readHeapType(string $input, int &$offset): HeapType|int
+    {
+        $heap_type = self::readSignedLEB128($input, $offset, 33);
+        if ($heap_type >= 0) {
+            return $heap_type;
+        }
+
+        return HeapType::tryFrom($heap_type & 0x7F) ?? throw new Exception('Invalid heap type: ' . $heap_type);
+    }
+
+    // https://webassembly.github.io/spec/core/binary/types.html#binary-storagetype
+    public static function readStorageType(string $input, int &$offset): ValueType|RefType|PackedType
+    {
+        $packed = PackedType::tryFrom(ord($input[$offset] ?? "\0"));
+        if ($packed) {
+            $offset++;
+            return $packed;
+        }
+
+        return self::readValueType($input, $offset);
+    }
+
+    // A memory instruction's immediates: [align, memory index, offset]. Bit 6 of the alignment flags an explicit
+    // memory index (multi-memory), and the offset is a u64 (memory64), which wraps negative above 2^63.
+    // https://webassembly.github.io/spec/core/binary/instructions.html#memory-instructions
+    public static function readMemArg(string $input, int &$offset): array
+    {
+        $align = self::readLEB128Uint32($input, $offset);
+        $memory_idx = 0;
+        if ($align & 0x40) {
+            $align &= ~0x40;
+            $memory_idx = self::readLEB128Uint32($input, $offset);
+        }
+
+        return [$align, $memory_idx, self::readLEB128Uint64($input, $offset)];
     }
 
     public static function readName(string $input, int &$offset): string
@@ -442,6 +570,28 @@ class WasmReader {
         if ($result > 0xFFFFFFFF) {
             throw new Exception('LEB128 value too large for a u32');
         }
+
+        return $result;
+    }
+
+    // Values above 2^63 don't fit in a PHP int, so they wrap negative
+    public static function readLEB128Uint64(string $input, int &$offset): int
+    {
+        $result = 0;
+        $shift = 0;
+        do {
+            if ($shift >= 70) {
+                throw new Exception('LEB128 value too large for a u64');
+            }
+
+            $byte = self::readUint8($input, $offset);
+            if ($shift === 63 && ($byte & 0x7E)) {
+                throw new Exception('LEB128 value too large for a u64');
+            }
+
+            $result |= ($byte & 0x7F) << $shift;
+            $shift += 7;
+        } while ($byte & 0x80);
 
         return $result;
     }

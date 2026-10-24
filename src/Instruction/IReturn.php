@@ -2,7 +2,6 @@
 
 namespace Oatmael\WasmPhp\Instruction;
 
-use Exception;
 use Oatmael\WasmPhp\Execution\Store;
 
 class IReturn implements InstructionInterface

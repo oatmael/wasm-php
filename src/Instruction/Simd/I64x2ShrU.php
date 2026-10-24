@@ -2,9 +2,10 @@
 
 namespace Oatmael\WasmPhp\Instruction\Simd;
 
-use Exception;
 use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Instruction\InstructionInterface;
+use Oatmael\WasmPhp\Type\V128;
+use Oatmael\WasmPhp\Util\Shape;
 
 class I64x2ShrU implements InstructionInterface {
     public static function fromInput(string $input, int &$offset): InstructionInterface {
@@ -12,6 +13,7 @@ class I64x2ShrU implements InstructionInterface {
     }
 
     public function execute(array &$stack, array &$call_stack, Store $store) {
-        throw new Exception('Not implemented: i64x2.shr_u opcode');
+        $shift = array_pop($stack)->value & 63;
+        $stack[] = V128::fromLanes(Shape::I64x2, array_map(static fn ($a) => $shift === 0 ? $a : ($a >> $shift) & (PHP_INT_MAX >> ($shift - 1)), array_pop($stack)->lanes(Shape::I64x2)));
     }
 }

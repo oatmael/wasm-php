@@ -4,7 +4,6 @@ namespace Oatmael\WasmPhp\Instruction;
 
 use Exception;
 use Oatmael\WasmPhp\Execution\Store;
-use Oatmael\WasmPhp\Type\GlobalImmutable;
 use Oatmael\WasmPhp\Util\WasmReader;
 
 class GlobalSet implements InstructionInterface {
@@ -26,7 +25,7 @@ class GlobalSet implements InstructionInterface {
         }
 
         $global = $store->globals[$this->global_idx];
-        if ($global instanceof GlobalImmutable) {
+        if (!$global->mutable) {
             throw new Exception("Can't set immutable global " . $this->global_idx);
         }
 

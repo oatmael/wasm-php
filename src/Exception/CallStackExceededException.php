@@ -2,4 +2,4 @@
 
 namespace Oatmael\WasmPhp\Exception;
 
-class CallStackExceededException extends WasmException {}
+class CallStackExceededException extends TrapException {}

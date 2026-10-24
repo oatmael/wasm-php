@@ -2,4 +2,4 @@
 
 namespace Oatmael\WasmPhp\Exception;
 
-class BadIntegerCastException extends WasmException {}
+class BadIntegerCastException extends TrapException {}

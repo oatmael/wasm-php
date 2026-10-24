@@ -2,21 +2,16 @@
 
 namespace Oatmael\WasmPhp\Instruction;
 
-use Exception;
 use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Type\F32;
 
+// Operates on the raw bits, so NaN payloads are preserved
 class F32Abs implements InstructionInterface {
     public static function fromInput(string $input, int &$offset): InstructionInterface {
         return new self();
     }
 
     public function execute(array &$stack, array &$call_stack, Store $store) {
-        $value = array_pop($stack);
-        if (!$value instanceof F32) {
-            throw new Exception('Invalid operand types for f32.abs');
-        }
-
-        array_push($stack, new F32(abs($value->getValue())));
+        $stack[] = F32::fromBits(array_pop($stack)->getBits() & 0x7FFFFFFF);
     }
 }

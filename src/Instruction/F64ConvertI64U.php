@@ -2,8 +2,9 @@
 
 namespace Oatmael\WasmPhp\Instruction;
 
-use Exception;
 use Oatmael\WasmPhp\Execution\Store;
+use Oatmael\WasmPhp\Type\F64;
+use Oatmael\WasmPhp\Util\Floats;
 
 class F64ConvertI64U implements InstructionInterface {
     public static function fromInput(string $input, int &$offset): InstructionInterface {
@@ -11,6 +12,6 @@ class F64ConvertI64U implements InstructionInterface {
     }
 
     public function execute(array &$stack, array &$call_stack, Store $store) {
-        throw new Exception('Not implemented: f64.convert_i64_u opcode');
+        $stack[] = new F64(Floats::fromInt(array_pop($stack)->value, unsigned: true, to_f32: false));
     }
 }

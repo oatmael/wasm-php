@@ -9,7 +9,8 @@ class Import {
         public readonly string $module,
         public readonly string $field,
         public readonly ImportType $type,
-        public readonly int $idx,
+        // A type index for functions and tags, otherwise the type of the table, memory or global
+        public readonly int|TableType|MemoryType|GlobalType $descriptor,
     )
     {
     }

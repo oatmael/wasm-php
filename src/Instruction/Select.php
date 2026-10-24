@@ -2,7 +2,6 @@
 
 namespace Oatmael\WasmPhp\Instruction;
 
-use Exception;
 use Oatmael\WasmPhp\Execution\Store;
 
 class Select implements InstructionInterface {
@@ -12,13 +11,9 @@ class Select implements InstructionInterface {
 
     public function execute(array &$stack, array &$call_stack, Store $store) {
         $condition = array_pop($stack);
-        $left = array_pop($stack);
         $right = array_pop($stack);
+        $left = array_pop($stack);
 
-        if (!$condition === null || $left === null || $right === null) {
-            throw new Exception('Invalid stack state for select opcode');
-        }
-
-        $condition->value ? array_push($stack, $left) : array_push($stack, $right);
+        $stack[] = $condition->getValue() !== 0 ? $left : $right;
     }
 }

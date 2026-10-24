@@ -2,26 +2,28 @@
 
 namespace Oatmael\WasmPhp\Instruction;
 
-use Exception;
 use Oatmael\WasmPhp\Execution\Store;
+use Oatmael\WasmPhp\Type\F64;
 use Oatmael\WasmPhp\Util\WasmReader;
 
 class F64Load implements InstructionInterface
 {
-  public function __construct(
-    public readonly int $align,
-    public readonly int $offset,
-  ) {}
+    public function __construct(
+        public readonly int $align,
+        public readonly int $offset,
+        public readonly int $memory_idx = 0,
+    ) {}
 
-  public static function fromInput(string $input, int &$offset): InstructionInterface
-  {
-    $align = WasmReader::readLEB128Uint32($input, $offset);
-    $mem_offset = WasmReader::readLEB128Uint32($input, $offset);
-    return new self($align, $mem_offset);
-  }
+    public static function fromInput(string $input, int &$offset): InstructionInterface
+    {
+        [$align, $memory_idx, $mem_offset] = WasmReader::readMemArg($input, $offset);
+        return new self($align, $mem_offset, $memory_idx);
+    }
 
-  public function execute(array &$stack, array &$call_stack, Store $store)
-  {
-    throw new Exception('Not implemented: f64.load opcode');
-  }
+    public function execute(array &$stack, array &$call_stack, Store $store)
+    {
+        $address = array_pop($stack);
+        $bytes = $store->memory[$this->memory_idx]->load($address, $this->offset, 8);
+        $stack[] = new F64(unpack('e', $bytes)[1]);
+    }
 }

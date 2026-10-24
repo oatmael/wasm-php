@@ -14,6 +14,6 @@ class Unreachable implements InstructionInterface
 
   public function execute(array &$stack, array &$call_stack, Store $store)
   {
-    throw new UnreachableException('Execution reached an unreachable instruction');
+    throw new UnreachableException('unreachable executed');
   }
 }

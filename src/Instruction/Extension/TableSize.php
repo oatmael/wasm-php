@@ -2,9 +2,10 @@
 
 namespace Oatmael\WasmPhp\Instruction\Extension;
 
-use Exception;
 use Oatmael\WasmPhp\Execution\Store;
 use Oatmael\WasmPhp\Instruction\InstructionInterface;
+use Oatmael\WasmPhp\Type\I64;
+use Oatmael\WasmPhp\Type\I32;
 use Oatmael\WasmPhp\Util\WasmReader;
 
 class TableSize implements InstructionInterface
@@ -21,6 +22,7 @@ class TableSize implements InstructionInterface
 
     public function execute(array &$stack, array &$call_stack, Store $store)
     {
-        throw new Exception('Not implemented: table.size opcode');
+        $table = $store->tables[$this->table_idx];
+        $stack[] = $table->is64 ? new I64($table->size()) : new I32($table->size());
     }
 }

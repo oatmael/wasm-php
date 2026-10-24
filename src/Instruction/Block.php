@@ -4,6 +4,7 @@ namespace Oatmael\WasmPhp\Instruction;
 
 use Oatmael\WasmPhp\Execution\ControlStackEntry;
 use Oatmael\WasmPhp\Execution\Store;
+use Oatmael\WasmPhp\Type\RefType;
 use Oatmael\WasmPhp\Util\ValueType;
 use Oatmael\WasmPhp\Util\WasmReader;
 use Oatmael\WasmPhp\Execution\Frame;
@@ -14,7 +15,7 @@ class Block implements InstructionInterface
   public int $end;
 
   public function __construct(
-    public readonly ValueType|int $block_type,
+    public readonly ValueType|RefType|int $block_type,
   ) {}
 
   public static function fromInput(string $input, int &$offset): InstructionInterface {

@@ -2,19 +2,19 @@
 
 namespace Oatmael\WasmPhp\Instruction;
 
-use Exception;
 use Oatmael\WasmPhp\Execution\Store;
+use Oatmael\WasmPhp\Type\NullRef;
+use Oatmael\WasmPhp\Util\HeapType;
 use Oatmael\WasmPhp\Util\WasmReader;
 
 class RefNull implements InstructionInterface {
-    public function __construct(public readonly int $ref_type) {}
+    public function __construct(public readonly HeapType|int $heap_type) {}
 
     public static function fromInput(string $input, int &$offset): InstructionInterface {
-        $ref_type = WasmReader::readLEB128Uint32($input, $offset);
-        return new self($ref_type);
+        return new self(WasmReader::readHeapType($input, $offset));
     }
 
     public function execute(array &$stack, array &$call_stack, Store $store) {
-        throw new Exception('Not implemented: ref.null opcode');
+        $stack[] = new NullRef();
     }
 }
